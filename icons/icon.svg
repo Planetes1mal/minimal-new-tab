@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" fill="#ffffff" rx="20" ry="20"/>
+  <circle cx="64" cy="64" r="50" fill="none" stroke="#4285f4" stroke-width="6"/>
+  <text x="64" y="74" text-anchor="middle" font-family="Arial" font-size="40" font-weight="bold" fill="#4285f4">NT</text>
+</svg> 

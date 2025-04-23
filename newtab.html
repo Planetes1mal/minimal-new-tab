@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新标签页</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="time-container">
+            <div id="time" class="time"></div>
+            <div id="date" class="date"></div>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box-container">
+                <div class="search-engine-selector">
+                    <select id="search-engine">
+                        <option value="https://cn.bing.com/search?q=">必应</option>
+                        <option value="https://www.google.com/search?q=">谷歌</option>
+                    </select>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="输入搜索关键词..." autofocus>
+                    <button id="search-button">搜索</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-links-section">
+            <div class="quick-links" id="quick-links">
+                <!-- 快速链接将通过JS动态添加 -->
+                <a id="add-link-button" class="quick-link add-link">
+                    <div class="quick-link-icon add-link-button">+</div>
+                    <div class="quick-link-name">添加</div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-link-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>添加快速链接</h2>
+            <div class="form-group">
+                <label for="link-name">名称:</label>
+                <input type="text" id="link-name">
+            </div>
+            <div class="form-group">
+                <label for="link-url">网址:</label>
+                <input type="text" id="link-url" placeholder="https://">
+            </div>
+            <button id="save-link">保存</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
