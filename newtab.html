@@ -60,17 +60,53 @@
 
     <div id="add-link-modal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>添加快速链接</h2>
-            <div class="form-group">
-                <label for="link-name">名称:</label>
-                <input type="text" id="link-name">
+            <div class="modal-header">
+                <h2>添加快速链接</h2>
+                <button class="close-btn" aria-label="关闭">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
             </div>
-            <div class="form-group">
-                <label for="link-url">网址:</label>
-                <input type="text" id="link-url" placeholder="https://">
-            </div>
-            <button id="save-link">保存</button>
+
+            <form class="modal-form">
+                <div class="form-group">
+                    <label for="link-name">名称</label>
+                    <input type="text" id="link-name" placeholder="输入网站名称">
+                </div>
+
+                <div class="form-group">
+                    <label for="link-url">网址</label>
+                    <input type="url" id="link-url" placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label>图标样式</label>
+                    <div class="segmented-control">
+                        <label class="segment-option">
+                            <input type="radio" name="icon-mode" id="icon-letter" value="letter">
+                            <span class="segment-label">极简生成</span>
+                        </label>
+                        <label class="segment-option">
+                            <input type="radio" name="icon-mode" id="icon-favicon" value="favicon" checked>
+                            <span class="segment-label">网站默认</span>
+                        </label>
+                        <label class="segment-option">
+                            <input type="radio" name="icon-mode" id="icon-custom" value="custom">
+                            <span class="segment-label">指定 URL</span>
+                        </label>
+                    </div>
+
+                    <div class="custom-url-input" id="custom-url-container">
+                        <input type="url" id="icon-custom-url" placeholder="https://example.com/favicon.ico">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-link">取消</button>
+                    <button type="submit" class="btn btn-primary" id="save-link">保存</button>
+                </div>
+            </form>
         </div>
     </div>
 

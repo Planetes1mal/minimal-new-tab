@@ -27,24 +27,41 @@ body {
 }
 
 .time-container {
-    margin-bottom: 40px;
+    margin-bottom: 30px;
     margin-top: -15vh;
 }
 
+/* 时间显示样式 */
 .time {
-    font-size: 4.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: 5.6rem;
     font-weight: 300;
+    letter-spacing: 4px;
+    font-variant-numeric: tabular-nums;
+    color: #1a1a1a;
+    line-height: 1;
 }
 
+.time .colon {
+    display: inline-block;
+    width: 0.6ch;
+    text-align: center;
+}
+
+/* 日期显示样式 */
 .date {
-    font-size: 1.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: 1.3rem;
+    font-weight: 400;
     margin-top: 30px;
     color: #666;
+    letter-spacing: 2px;
+    line-height: 1.4;
 }
 
 .search-container {
-    margin-bottom: 40px;
-    margin-top: 30px;
+    margin-bottom: 30px;
+    margin-top: 20px;
 }
 
 .search-box-container {
@@ -228,13 +245,27 @@ body {
 .quick-link-icon {
     width: 50px;
     height: 50px;
-    border-radius: 50%;
-    background-color: #f0f0f0;
+    border-radius: 12px;
+    /* 圆角正方形 */
+    background-color: #f5f5f7;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-bottom: 8px;
     font-size: 20px;
+    overflow: hidden;
+    /* 裁剪内部图片 */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* 让图标在方块中等比居中显示，避免被裁剪 */
+.quick-link-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 8px;
+    border-radius: inherit;
+    display: block;
 }
 
 .quick-link-name {
@@ -281,65 +312,322 @@ body {
     background-color: #e5e5e5;
 }
 
+/* 弹窗样式 */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1;
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border-radius: 8px;
-    width: 80%;
-    max-width: 400px;
+    background-color: #ffffff;
+    margin: 10% auto;
+    padding: 0;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f0f0f0;
+    animation: modalSlideIn 0.3s ease-out;
+    overflow: hidden;
 }
 
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-20px) scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* 弹窗头部 */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0 24px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.close-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background-color: #f5f5f7;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    color: #666;
+    transition: all 0.2s ease;
 }
 
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
+.close-btn:hover {
+    background-color: #e5e5e7;
+    color: #333;
+    transform: scale(1.05);
+}
+
+/* 表单样式 */
+.modal-form {
+    padding: 0 24px 24px 24px;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 24px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
 }
 
-.form-group input {
+.form-group input[type="text"],
+.form-group input[type="url"] {
     width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px 16px;
+    border: 1px solid #e1e5e9;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    background-color: #fafbfc;
+    transition: all 0.2s ease;
+    outline: none;
 }
 
-#save-link {
-    padding: 8px 16px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
+.form-group input[type="text"]:focus,
+.form-group input[type="url"]:focus {
+    border-color: #007aff;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.form-group input[type="text"]::placeholder,
+.form-group input[type="url"]::placeholder {
+    color: #999;
+}
+
+/* 分段控件样式 */
+.segmented-control {
+    display: flex;
+    background-color: #f5f5f7;
+    border-radius: 12px;
+    padding: 4px;
+    margin-top: 8px;
+    position: relative;
+    border: 1px solid #e1e5e9;
+}
+
+.segment-option {
+    flex: 1;
+    position: relative;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-#save-link:hover {
-    background-color: #45a049;
+.segment-option:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 60%;
+    background-color: #d1d5db;
+    z-index: 1;
+}
+
+.segment-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.segment-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #666;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+    min-height: 36px;
+    box-sizing: border-box;
+    transform: translateY(4px);
+}
+
+/* 未选中状态 */
+.segment-option input[type="radio"]:not(:checked)+.segment-label {
+    background-color: transparent;
+    color: #666;
+}
+
+/* 选中状态 */
+.segment-option input[type="radio"]:checked+.segment-label {
+    background-color: #007aff;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+/* 悬停效果 */
+.segment-option:hover .segment-label {
+    background-color: rgba(0, 122, 255, 0.1);
+    color: #007aff;
+}
+
+.segment-option input[type="radio"]:checked:hover+.segment-label {
+    background-color: #0056cc;
+    color: white;
+}
+
+/* 自定义URL输入框 */
+.custom-url-input {
+    margin-top: 12px;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-8px);
+}
+
+.custom-url-input.show {
+    max-height: 80px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-top: 16px;
+}
+
+/* 按钮样式 */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.btn {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #007aff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056cc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.btn-secondary {
+    background-color: #f5f5f7;
+    color: #666;
+    border: 1px solid #e1e5e9;
+}
+
+.btn-secondary:hover {
+    background-color: #e5e5e7;
+    color: #333;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .time {
+        font-size: 4.5rem;
+        letter-spacing: 3px;
+    }
+
+    .date {
+        font-size: 1rem;
+        margin-top: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .time {
+        font-size: 3.8rem;
+        letter-spacing: 2px;
+    }
+
+    .date {
+        font-size: 0.95rem;
+        margin-top: 18px;
+        letter-spacing: 0.8px;
+    }
+
+    .modal-content {
+        margin: 5% auto;
+        width: 95%;
+    }
+
+    .modal-header {
+        padding: 20px 20px 0 20px;
+    }
+
+    .modal-form {
+        padding: 0 20px 20px 20px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    /* 在小屏幕上调整分段控件的字体大小 */
+    .segment-label {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        min-height: 32px;
+    }
+
+    /* 确保分段控件在小屏幕上不会换行 */
+    .segmented-control {
+        min-width: 0;
+    }
 }
