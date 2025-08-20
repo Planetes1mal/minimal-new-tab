@@ -1,7 +1,5 @@
 # 极简新标签页插件
 
-[English](docs/README.en.md) | 中文
-
 [![License：MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 一个极简风格的新标签页扩展，适用于 Chrome 与 Microsoft Edge。
