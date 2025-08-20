@@ -1,5 +1,7 @@
 # 极简新标签页插件
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 一个极简风格的Edge浏览器新标签页插件，提供时间、日期显示、搜索框和自定义快速链接功能。
 
 ## 功能
