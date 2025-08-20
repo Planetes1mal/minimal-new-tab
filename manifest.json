@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "极简新标签页",
-    "version": "1.0",
+    "version": "1.1",
     "description": "一个极简的新标签页，包含时间、日期、搜索框和自定义链接",
     "chrome_url_overrides": {
         "newtab": "newtab.html"
@@ -10,8 +10,8 @@
         "storage"
     ],
     "icons": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
+        "16": "icons/png/icon16.png",
+        "48": "icons/png/icon48.png",
+        "128": "icons/png/icon128.png"
     }
 }

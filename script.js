@@ -1,3 +1,153 @@
+// 主题管理
+const themeManager = {
+    // 主题状态
+    currentTheme: null, // 'light', 'dark', 或 null (跟随系统)
+
+    // 初始化主题
+    init() {
+        this.loadTheme();
+        this.applyTheme();
+        this.setupThemeToggle();
+    },
+
+    // 加载保存的主题设置
+    loadTheme() {
+        try {
+            const savedTheme = localStorage.getItem('theme');
+            this.currentTheme = savedTheme || null;
+        } catch (e) {
+            console.error('Error loading theme:', e);
+            this.currentTheme = null;
+        }
+    },
+
+    // 保存主题设置
+    saveTheme(theme) {
+        try {
+            if (theme) {
+                localStorage.setItem('theme', theme);
+            } else {
+                localStorage.removeItem('theme');
+            }
+        } catch (e) {
+            console.error('Error saving theme:', e);
+        }
+    },
+
+    // 应用主题
+    applyTheme() {
+        const root = document.documentElement;
+        const themeToggle = document.getElementById('theme-toggle');
+
+        if (this.currentTheme === 'dark') {
+            this.applyDarkTheme();
+            themeToggle.classList.add('dark');
+            themeToggle.classList.remove('light');
+        } else if (this.currentTheme === 'light') {
+            this.applyLightTheme();
+            themeToggle.classList.add('light');
+            themeToggle.classList.remove('dark');
+        } else {
+            // 跟随系统设置
+            this.followSystemTheme();
+            themeToggle.classList.remove('light', 'dark');
+        }
+    },
+
+    // 应用深色主题
+    applyDarkTheme() {
+        const root = document.documentElement;
+        root.style.setProperty('--c-bg', '#121212');
+        root.style.setProperty('--c-surface', '#1e1e1e');
+        root.style.setProperty('--c-surface-container', '#333333');
+        root.style.setProperty('--c-text-primary', '#e0e0e0');
+        root.style.setProperty('--c-text-secondary', '#a0a0a0');
+        root.style.setProperty('--c-border', '#3a3a3a');
+        root.style.setProperty('--c-accent', '#3399ff');
+        root.style.setProperty('--c-input-bg', '#2a2a2a');
+        root.style.setProperty('--c-input-border', '#3a3a3a');
+        root.style.setProperty('--c-button-hover', '#404040');
+        root.style.setProperty('--c-segment-bg', '#2a2a2a');
+        root.style.setProperty('--c-segment-border', '#3a3a3a');
+        root.style.setProperty('--c-segment-divider', '#4a4a4a');
+        root.style.setProperty('--c-custom-url-bg', '#2a2a2a');
+        root.style.setProperty('--c-custom-url-border', '#3a3a3a');
+        root.style.setProperty('--c-theme-toggle-bg', '#333333');
+        root.style.setProperty('--c-theme-toggle-border', '#3a3a3a');
+        root.style.setProperty('--c-theme-toggle-hover', '#404040');
+    },
+
+    // 应用浅色主题
+    applyLightTheme() {
+        const root = document.documentElement;
+        root.style.setProperty('--c-bg', '#ffffff');
+        root.style.setProperty('--c-surface', '#ffffff');
+        root.style.setProperty('--c-surface-container', '#f5f5f7');
+        root.style.setProperty('--c-text-primary', '#1a1a1a');
+        root.style.setProperty('--c-text-secondary', '#666666');
+        root.style.setProperty('--c-border', '#e1e5e9');
+        root.style.setProperty('--c-accent', '#007aff');
+        root.style.setProperty('--c-input-bg', '#fafbfc');
+        root.style.setProperty('--c-input-border', '#e1e5e9');
+        root.style.setProperty('--c-button-hover', '#e5e5e7');
+        root.style.setProperty('--c-segment-bg', '#f5f5f7');
+        root.style.setProperty('--c-segment-border', '#e1e5e9');
+        root.style.setProperty('--c-segment-divider', '#d1d5db');
+        root.style.setProperty('--c-custom-url-bg', '#f8f9fa');
+        root.style.setProperty('--c-custom-url-border', '#e9ecef');
+        root.style.setProperty('--c-theme-toggle-bg', '#f5f5f7');
+        root.style.setProperty('--c-theme-toggle-border', '#e1e5e9');
+        root.style.setProperty('--c-theme-toggle-hover', '#e5e5e7');
+    },
+
+    // 跟随系统主题
+    followSystemTheme() {
+        // 移除所有手动设置的样式，让CSS媒体查询生效
+        const root = document.documentElement;
+        const computedStyle = getComputedStyle(root);
+
+        // 检查系统是否处于深色模式
+        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (isDarkMode) {
+            this.applyDarkTheme();
+        } else {
+            this.applyLightTheme();
+        }
+    },
+
+    // 切换主题
+    toggleTheme() {
+        if (this.currentTheme === 'light') {
+            this.currentTheme = 'dark';
+        } else if (this.currentTheme === 'dark') {
+            this.currentTheme = null; // 跟随系统
+        } else {
+            this.currentTheme = 'light';
+        }
+
+        this.saveTheme(this.currentTheme);
+        this.applyTheme();
+    },
+
+    // 设置主题切换按钮
+    setupThemeToggle() {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+
+        // 监听系统主题变化
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (this.currentTheme === null) {
+                this.applyTheme();
+            }
+        });
+    }
+};
+
 // 显示时间和日期
 function updateDateTime() {
     const now = new Date();
@@ -374,6 +524,9 @@ saveLinkButton.onclick = defaultSaveHandler;
 
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
+    // 初始化主题管理器
+    themeManager.init();
+
     // 加载保存的搜索引擎选择
     storage.get('searchEngine', function (data) {
         if (data.searchEngine) {
