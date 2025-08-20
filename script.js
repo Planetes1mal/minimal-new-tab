@@ -5,14 +5,18 @@ function updateDateTime() {
     // 更新时间
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    document.getElementById('time').textContent = `${hours}:${minutes}`;
+    const timeEl = document.getElementById('time');
+    // 使用可单独控制的冒号元素，便于动画
+    timeEl.innerHTML = `${hours}<span class="colon">:</span>${minutes}`;
 
     // 更新日期
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     const weekday = weekdays[now.getDay()];
+
+    // 更优雅的日期格式：2024年8月20日 周二
     document.getElementById('date').textContent = `${year}年${month}月${day}日 ${weekday}`;
 }
 
@@ -25,6 +29,20 @@ document.getElementById('search-button').addEventListener('click', performSearch
 document.getElementById('search-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         performSearch();
+    }
+});
+
+// 根据单选切换，自定义 URL 输入框显示状态
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.name === 'icon-mode') {
+        const customContainer = document.getElementById('custom-url-container');
+        if (customContainer) {
+            if (e.target.value === 'custom') {
+                customContainer.classList.add('show');
+            } else {
+                customContainer.classList.remove('show');
+            }
+        }
     }
 });
 
@@ -94,11 +112,42 @@ const storage = {
     }
 };
 
-// 从存储中加载链接或使用默认链接
+// 依据 URL 生成 favicon 地址，优先站点自身的 /favicon.ico
+function deriveFaviconUrl(linkUrl) {
+    try {
+        const url = new URL(linkUrl);
+        const domain = url.hostname;
+        return `${url.protocol}//${domain}/favicon.ico`;
+    } catch (e) {
+        return '';
+    }
+}
+
+// 从存储中加载链接或使用默认链接，并补齐缺失的图标字段
 function loadLinks() {
     storage.get('quickLinks', function (data) {
         let links = data.quickLinks || defaultLinks;
-        renderLinks(links);
+
+        // 为缺少 icon/iconMode 的项补充，并在有变更时保存
+        let mutated = false;
+        links = links.map(link => {
+            const next = { ...link };
+            if (!next.iconMode) {
+                next.iconMode = 'favicon';
+                mutated = true;
+            }
+            if (!next.icon && next.iconMode === 'favicon') {
+                next.icon = deriveFaviconUrl(next.url);
+                mutated = true;
+            }
+            return next;
+        });
+
+        if (mutated) {
+            saveLinks(links);
+        } else {
+            renderLinks(links);
+        }
     });
 }
 
@@ -124,11 +173,24 @@ function renderLinks(links) {
         linkElement.className = 'quick-link';
         linkElement.href = link.url;
         linkElement.target = '_blank';
+        linkElement.title = link.url;
 
-        // 创建图标 (使用链接的第一个字母作为图标)
+        // 创建图标：优先 favicon 图片，失败回退到首字母
         const iconElement = document.createElement('div');
         iconElement.className = 'quick-link-icon';
-        iconElement.textContent = link.name.charAt(0).toUpperCase();
+        if (link.icon && link.iconMode !== 'letter') {
+            const img = document.createElement('img');
+            img.src = link.icon;
+            img.alt = link.name;
+            img.onerror = function () {
+                // 图片加载失败时回退为首字母
+                iconElement.innerHTML = '';
+                iconElement.textContent = link.name.charAt(0).toUpperCase();
+            };
+            iconElement.appendChild(img);
+        } else {
+            iconElement.textContent = link.name.charAt(0).toUpperCase();
+        }
 
         // 创建名称
         const nameElement = document.createElement('div');
@@ -153,6 +215,9 @@ function renderLinks(links) {
 
     // 重新添加"添加"按钮
     quickLinksContainer.appendChild(addButton);
+
+    // 建立右键编辑
+    attachContextMenu(links);
 }
 
 // 删除链接
@@ -164,10 +229,73 @@ function deleteLink(index) {
     });
 }
 
+// 右键编辑：打开弹窗并写回
+function attachContextMenu(links) {
+    const quickLinksContainer = document.getElementById('quick-links');
+    const linkNodes = quickLinksContainer.querySelectorAll('a.quick-link');
+    linkNodes.forEach((node, idx) => {
+        node.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            storage.get('quickLinks', function (data) {
+                let all = data.quickLinks || defaultLinks;
+                const current = all[idx];
+
+                modal.style.display = 'block';
+                document.getElementById('link-name').value = current.name || '';
+                document.getElementById('link-url').value = current.url || '';
+                const mode = current.iconMode || (current.icon ? 'favicon' : 'letter');
+                if (mode === 'letter') {
+                    document.getElementById('icon-letter').checked = true;
+                } else if (mode === 'custom') {
+                    document.getElementById('icon-custom').checked = true;
+                } else {
+                    document.getElementById('icon-favicon').checked = true;
+                }
+                const customContainer = document.getElementById('custom-url-container');
+                const customInput = document.getElementById('icon-custom-url');
+                if (customContainer && customInput) {
+                    if (mode === 'custom') {
+                        customContainer.classList.add('show');
+                        customInput.value = current.icon || '';
+                    } else {
+                        customContainer.classList.remove('show');
+                        customInput.value = '';
+                    }
+                }
+
+                // 重设保存按钮为更新当前项
+                const updateHandler = function () {
+                    const linkName = document.getElementById('link-name').value.trim();
+                    let linkUrl = document.getElementById('link-url').value.trim();
+                    const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
+                    const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
+                    if (linkName && linkUrl) {
+                        if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+                            linkUrl = 'https://' + linkUrl;
+                        }
+                        let icon = '';
+                        if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
+                        if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
+                        all[idx] = { name: linkName, url: linkUrl, iconMode, icon };
+                        saveLinks(all);
+                        closeModal();
+                        // 恢复默认保存
+                        saveLinkButton.onclick = defaultSaveHandler;
+                    }
+                };
+
+                // 绑定更新处理函数
+                saveLinkButton.onclick = updateHandler;
+            });
+        });
+    });
+}
+
 // 添加链接模态框
 const modal = document.getElementById('add-link-modal');
 const addLinkButton = document.getElementById('add-link-button');
-const closeButton = document.querySelector('.close');
+const closeButton = document.querySelector('.close-btn');
+const cancelButton = document.getElementById('cancel-link');
 const saveLinkButton = document.getElementById('save-link');
 
 // 打开模态框
@@ -176,24 +304,52 @@ addLinkButton.onclick = function (e) {
     modal.style.display = 'block';
     document.getElementById('link-name').value = '';
     document.getElementById('link-url').value = '';
+    // 默认选择 favicon
+    const radioFavicon = document.getElementById('icon-favicon');
+    if (radioFavicon) radioFavicon.checked = true;
+    const customContainer = document.getElementById('custom-url-container');
+    if (customContainer) {
+        customContainer.classList.remove('show');
+    }
+    const customInput = document.getElementById('icon-custom-url');
+    if (customInput) {
+        customInput.value = '';
+    }
 };
 
 // 关闭模态框
-closeButton.onclick = function () {
+function closeModal() {
     modal.style.display = 'none';
-};
+}
+
+closeButton.onclick = closeModal;
+cancelButton.onclick = closeModal;
 
 // 点击模态框外部关闭
 window.onclick = function (event) {
     if (event.target === modal) {
-        modal.style.display = 'none';
+        closeModal();
     }
 };
 
+// 阻止模态框内容区域的点击事件冒泡
+document.querySelector('.modal-content').addEventListener('click', function (e) {
+    e.stopPropagation();
+});
+
+// 处理表单提交
+document.querySelector('.modal-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    defaultSaveHandler();
+});
+
 // 保存新链接
-saveLinkButton.onclick = function () {
+// 默认保存处理函数，供编辑后恢复
+function defaultSaveHandler() {
     const linkName = document.getElementById('link-name').value.trim();
     let linkUrl = document.getElementById('link-url').value.trim();
+    const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
+    const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
 
     if (linkName && linkUrl) {
         // 确保URL格式正确
@@ -203,12 +359,18 @@ saveLinkButton.onclick = function () {
 
         storage.get('quickLinks', function (data) {
             let links = data.quickLinks || defaultLinks;
-            links.push({ name: linkName, url: linkUrl });
+            let icon = '';
+            if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
+            if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
+            links.push({ name: linkName, url: linkUrl, iconMode, icon });
             saveLinks(links);
-            modal.style.display = 'none';
+            closeModal();
         });
     }
-};
+}
+
+// 绑定默认保存逻辑
+saveLinkButton.onclick = defaultSaveHandler;
 
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
