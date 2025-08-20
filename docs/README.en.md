@@ -4,51 +4,96 @@ English | [中文](../README.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A minimal new tab extension for Chrome and Microsoft Edge. It shows the current time and date, provides a search box with icon-based engine switcher (Google/Bing), a magnifier search button icon, and customizable quick links.
+A minimal new tab extension for Chrome and Microsoft Edge.
 
-## Features
+## 🚀 Installation
 
-- **Live time and date** displayed in the center
-- **Search box** with engine switcher (Google, Bing) using icons
-- **Custom quick links**: add/remove/manage your favorite websites
-- **Minimal UI**: clean and distraction-free
+### Load Unpacked (Chrome / Edge)
 
-## Installation
+1. **Download Project**
+   ```bash
+   git clone https://github.com/Planetes1mal/minimal-new-tab.git
+   cd minimal-new-tab
+   ```
 
-### Load unpacked (Chrome / Edge)
+2. **Open Extensions Page**
+   - Chrome: Navigate to `chrome://extensions/`
+   - Edge: Navigate to `edge://extensions/`
 
-1. Download or clone this repository to a local folder
-2. Open the extensions page:
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-3. Enable Developer mode
-4. Click “Load unpacked”
-5. Select the project root folder
-6. Open a new tab to see it in action
+3. **Enable Developer Mode**
+   
+4. **Load Extension**
+   - Click "Load unpacked"
+   - Select the project root directory
 
-## Usage
+5. **Start Using**：Open a new tab to see it in action
 
-- **Search**: type keywords, choose a search engine, press Enter or click the search icon
-- **Add quick link**: click the “+” tile, enter name and URL, then Save
-- **Delete quick link**: hover a link and click the “×” button
+## 📖 Usage Guide
 
-Tip: the engine selector on the left and the expanded options both display icons; the right button is a magnifier icon.
+### Search Functionality
+- Type keywords in the search box
+- Click the left icon to switch search engines (Google/Bing)
+- Press Enter or click the search icon to search
 
-## Project Structure
+### Quick Links Management
+- **Add Links**: Click the "+" button, fill in name and URL
+- **Edit Links**: Right-click on existing links to edit
+- **Delete Links**: Hover over links and click the "×" button
+- **Icon Selection**:
+  - Minimal Generation: Uses first letter of website name
+  - Website Default: Automatically fetches website favicon
+  - Custom URL: Manually input icon address
 
-- `manifest.json`: extension manifest
-- `newtab.html`: new tab markup
-- `styles.css`: styling
-- `script.js`: logic
-- `icons/`: icons
+### Theme Switching
+- Click the icon in the bottom-right corner
+- Supports light mode, dark mode, and system follow
+- Settings are automatically saved
 
-## Notes
+## 🛠️ Technical Features
 
-- The extension uses the `storage` permission to store your preferred search engine and quick links
-- No personal data or browsing data is collected
+### Modern Tech Stack
+- **Pure Native**: HTML5 + CSS3 + JavaScript
+- **CSS Variables**: Complete theme system
+- **Performance Optimized**: Lightweight and fast loading
+
+### Browser Compatibility
+- ✅ Chrome 88+
+- ✅ Microsoft Edge 88+
+
+### Permissions
+- `storage`: Save user settings and quick links
+- `activeTab`: New tab page access
+
+## 📁 Project Structure
+
+```
+minimal-new-tab/
+├── manifest.json         # Extension manifest
+├── newtab.html           # New tab HTML
+├── styles.css            # Styles (includes theme system)
+├── script.js             # JavaScript logic
+├── icons/                # Icon assets
+│   ├── google.svg        # Google icon
+│   ├── bing.svg          # Bing icon
+│   ├── search.svg        # Search icon
+│   ├── sun.svg           # Sun icon
+│   ├── moon.svg          # Moon icon
+│   └── icons/  
+│       └── icon*.png     # Extension icons
+├── docs/                 # Documentation
+│   └── README.en.md      # English documentation
+└── README.md             # Chinese documentation
+```
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+## 🙏 Acknowledgments
+
+Thanks to all developers who have contributed to this project!
 
 ---
 
 If you prefer Chinese documentation, please read [README.md](../README.md).
-
 
