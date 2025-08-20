@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "极简新标签页",
     "version": "1.1",
-    "description": "一个极简的新标签页，包含时间、日期、搜索框和自定义链接",
+    "description": "一个极简的新标签页",
     "chrome_url_overrides": {
         "newtab": "newtab.html"
     },
