@@ -118,13 +118,12 @@ const themeManager = {
 
     // 切换主题
     toggleTheme() {
-        if (this.currentTheme === 'light') {
-            this.currentTheme = 'dark';
-        } else if (this.currentTheme === 'dark') {
-            this.currentTheme = null; // 跟随系统
-        } else {
-            this.currentTheme = 'light';
-        }
+        // 获取当前实际显示的主题（无论是手动设置还是跟随系统）
+        const isCurrentlyDark = this.currentTheme === 'dark' ||
+            (this.currentTheme === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        // 直接切换到相反的主题
+        this.currentTheme = isCurrentlyDark ? 'light' : 'dark';
 
         this.saveTheme(this.currentTheme);
         this.applyTheme();
