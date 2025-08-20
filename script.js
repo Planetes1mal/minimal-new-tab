@@ -216,14 +216,85 @@ document.addEventListener('DOMContentLoaded', function () {
     storage.get('searchEngine', function (data) {
         if (data.searchEngine) {
             document.getElementById('search-engine').value = data.searchEngine;
+            updateSearchEngineIcon();
         }
     });
 
     // 保存搜索引擎选择
     document.getElementById('search-engine').addEventListener('change', function () {
         storage.set({ 'searchEngine': this.value });
+        updateSearchEngineIcon();
     });
 
     // 加载快速链接
     loadLinks();
-}); 
+
+    // 初始化一次图标（处理未保存过的默认值）
+    updateSearchEngineIcon();
+
+    // 初始化自定义下拉
+    initEngineDropdown();
+});
+
+// 根据选择的搜索引擎切换下拉的图标样式
+function updateSearchEngineIcon() {
+    const select = document.getElementById('search-engine');
+    const value = select.value || '';
+
+    select.classList.remove('google', 'bing');
+    if (value.includes('google')) {
+        select.classList.add('google');
+    } else if (value.includes('bing')) {
+        select.classList.add('bing');
+    }
+
+    // 同步到自定义按钮图标
+    const btnIcon = document.querySelector('.engine-dropdown .engine-icon');
+    if (!btnIcon) return;
+    btnIcon.classList.remove('google', 'bing');
+    if (value.includes('google')) {
+        btnIcon.classList.add('google');
+    } else if (value.includes('bing')) {
+        btnIcon.classList.add('bing');
+    }
+}
+
+// 自定义下拉的行为
+function initEngineDropdown() {
+    const dropdown = document.getElementById('engine-dropdown');
+    if (!dropdown) return;
+    const list = dropdown.querySelector('.engine-list');
+    const button = dropdown.querySelector('.engine-btn');
+    const select = document.getElementById('search-engine');
+
+    // 打开/关闭
+    button.addEventListener('click', function () {
+        const willOpen = !list.classList.contains('open');
+        document.querySelectorAll('.engine-list.open').forEach(el => el.classList.remove('open'));
+        list.classList.toggle('open', willOpen);
+        button.setAttribute('aria-expanded', String(willOpen));
+    });
+
+    // 点击选项
+    list.querySelectorAll('.engine-option').forEach(function (item) {
+        item.addEventListener('click', function () {
+            const value = this.getAttribute('data-value');
+            select.value = value;
+            storage.set({ 'searchEngine': value });
+            updateSearchEngineIcon();
+            list.classList.remove('open');
+            button.setAttribute('aria-expanded', 'false');
+        });
+    });
+
+    // 点击外部收起
+    document.addEventListener('click', function (e) {
+        if (!dropdown.contains(e.target)) {
+            list.classList.remove('open');
+            button.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // 根据当前 select 值设置初始图标
+    updateSearchEngineIcon();
+}
