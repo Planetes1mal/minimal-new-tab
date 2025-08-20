@@ -30,9 +30,7 @@
 
 ## 联系我们
 
-如果您对本隐私政策有任何疑问或建议，欢迎通过我们的官方渠道与我们联系。我们推荐您通过项目的 GitHub Issues 页面提交问题，以便我们能公开、透明地进行追踪和回复。
-
-**GitHub Issues**：[https://github.com/Planetes1mal/minimal-new-tab/issues](https://github.com/Planetes1mal/minimal-new-tab/issues)
+如果您对本隐私政策有任何疑问或建议，欢迎通过我们的官方渠道与我们联系。我们推荐您通过项目的 [GitHub Issues](https://github.com/Planetes1mal/minimal-new-tab/issues) 页面提交问题，以便我们能公开、透明地进行追踪和回复。
 
 ---
 
