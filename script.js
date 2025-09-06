@@ -331,11 +331,26 @@ function renderLinks(links) {
             const img = document.createElement('img');
             img.src = link.icon;
             img.alt = link.name;
+
+            // 设置加载超时（3秒）
+            const timeoutId = setTimeout(() => {
+                // 超时后回退为首字母
+                iconElement.innerHTML = '';
+                iconElement.textContent = link.name.charAt(0).toUpperCase();
+            }, 3000);
+
+            img.onload = function () {
+                // 加载成功，清除超时
+                clearTimeout(timeoutId);
+            };
+
             img.onerror = function () {
                 // 图片加载失败时回退为首字母
+                clearTimeout(timeoutId);
                 iconElement.innerHTML = '';
                 iconElement.textContent = link.name.charAt(0).toUpperCase();
             };
+
             iconElement.appendChild(img);
         } else {
             iconElement.textContent = link.name.charAt(0).toUpperCase();
