@@ -323,6 +323,8 @@ function renderLinks(links) {
         linkElement.href = link.url;
         linkElement.target = '_blank';
         linkElement.title = link.url;
+        linkElement.draggable = true;
+        linkElement.dataset.index = index;
 
         // 创建图标：优先 favicon 图片，失败回退到首字母
         const iconElement = document.createElement('div');
@@ -382,6 +384,108 @@ function renderLinks(links) {
 
     // 建立右键编辑
     attachContextMenu(links);
+
+    // 设置拖拽功能
+    setupDragAndDrop();
+}
+
+// 设置拖拽功能
+function setupDragAndDrop() {
+    const quickLinksContainer = document.getElementById('quick-links');
+    let draggedElement = null;
+    let draggedIndex = null;
+
+    // 为所有快捷链接添加拖拽事件监听器
+    const linkElements = quickLinksContainer.querySelectorAll('a.quick-link');
+    
+    linkElements.forEach((linkElement, index) => {
+        // 拖拽开始
+        linkElement.addEventListener('dragstart', function(e) {
+            draggedElement = this;
+            draggedIndex = parseInt(this.dataset.index);
+            
+            // 设置拖拽效果
+            this.style.opacity = '0.5';
+            this.classList.add('dragging');
+            
+            // 设置拖拽数据
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+        });
+
+        // 拖拽结束
+        linkElement.addEventListener('dragend', function(e) {
+            this.style.opacity = '';
+            this.classList.remove('dragging');
+            
+            // 清理所有拖拽相关的样式
+            const allLinks = quickLinksContainer.querySelectorAll('a.quick-link');
+            allLinks.forEach(link => {
+                link.classList.remove('drag-over');
+            });
+            
+            draggedElement = null;
+            draggedIndex = null;
+        });
+
+        // 拖拽进入
+        linkElement.addEventListener('dragenter', function(e) {
+            if (draggedElement && draggedElement !== this) {
+                e.preventDefault();
+                this.classList.add('drag-over');
+            }
+        });
+
+        // 拖拽悬停
+        linkElement.addEventListener('dragover', function(e) {
+            if (draggedElement && draggedElement !== this) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        // 拖拽离开
+        linkElement.addEventListener('dragleave', function(e) {
+            // 只有当鼠标真正离开元素时才移除样式
+            if (!this.contains(e.relatedTarget)) {
+                this.classList.remove('drag-over');
+            }
+        });
+
+        // 放置
+        linkElement.addEventListener('drop', function(e) {
+            if (draggedElement && draggedElement !== this) {
+                e.preventDefault();
+                
+                const dropIndex = parseInt(this.dataset.index);
+                
+                // 交换位置
+                swapLinks(draggedIndex, dropIndex);
+                
+                this.classList.remove('drag-over');
+            }
+        });
+    });
+}
+
+// 交换链接位置
+function swapLinks(fromIndex, toIndex) {
+    storage.get('quickLinks', function(data) {
+        let links = data.quickLinks || defaultLinks;
+        
+        // 交换数组中的元素
+        if (fromIndex >= 0 && fromIndex < links.length && 
+            toIndex >= 0 && toIndex < links.length && 
+            fromIndex !== toIndex) {
+            
+            const temp = links[fromIndex];
+            links[fromIndex] = links[toIndex];
+            links[toIndex] = temp;
+            
+            // 保存更新后的链接顺序
+            saveLinks(links);
+        }
+    });
 }
 
 // 删除链接
