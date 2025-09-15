@@ -356,6 +356,34 @@ body {
     opacity: 1;
 }
 
+/* 拖拽相关样式 */
+.quick-link.dragging {
+    transform: rotate(5deg);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.quick-link.drag-over {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+.quick-link.drag-over .quick-link-icon {
+    background-color: var(--c-accent);
+    color: var(--c-accent-text);
+    transform: scale(0.9);
+    transition: all 0.2s ease;
+}
+
+/* 拖拽时的光标样式 */
+.quick-link[draggable="true"] {
+    cursor: grab;
+}
+
+.quick-link[draggable="true"]:active {
+    cursor: grabbing;
+}
+
 .add-link {
     cursor: pointer;
 }
