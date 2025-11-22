@@ -38,19 +38,25 @@ const themeManager = {
     applyTheme() {
         const root = document.documentElement;
         const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
 
         if (this.currentTheme === 'dark') {
             this.applyDarkTheme();
             themeToggle.classList.add('dark');
             themeToggle.classList.remove('light');
+            body.classList.add('dark');
+            body.classList.remove('light');
         } else if (this.currentTheme === 'light') {
             this.applyLightTheme();
             themeToggle.classList.add('light');
             themeToggle.classList.remove('dark');
+            body.classList.add('light');
+            body.classList.remove('dark');
         } else {
             // 跟随系统设置
             this.followSystemTheme();
             themeToggle.classList.remove('light', 'dark');
+            body.classList.remove('light', 'dark');
         }
     },
 
@@ -158,20 +164,50 @@ function updateDateTime() {
     // 使用可单独控制的冒号元素，便于动画
     timeEl.innerHTML = `${hours}<span class="colon">:</span>${minutes}`;
 
-    // 更新日期
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    const weekday = weekdays[now.getDay()];
-
-    // 更优雅的日期格式：2024年8月20日 周二
-    document.getElementById('date').textContent = `${year}年${month}月${day}日 ${weekday}`;
+    // 更新日期 - 使用英文格式
+    const options = { month: 'short', day: 'numeric', weekday: 'long' };
+    document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
 }
 
 // 每秒更新一次时间
 updateDateTime();
 setInterval(updateDateTime, 1000);
+
+// 搜索引擎图标路径
+const engineIcons = {
+    google: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.147-3.253 2.12-2.12 2.793-5.333 2.793-8.267 0-.8-.053-1.467-.173-2.133H12.48z',
+    bing: 'M3.3 0v24l8.4-4.6V4.4zm9.5 5.6L18.6 9l-5.8 3.4v4.8l8.2-4.7V6.2z'
+};
+
+// 搜索引擎配置
+const engines = [
+    { name: 'google', url: 'https://www.google.com/search?q=' },
+    { name: 'bing', url: 'https://www.bing.com/search?q=' }
+];
+
+// 当前搜索引擎索引
+let currentEngineIndex = 0;
+
+// 更新搜索引擎图标
+function updateEngineIcon() {
+    const engineIcon = document.getElementById('engine-icon');
+    const currentEngine = engines[currentEngineIndex];
+    const iconPath = engineIcons[currentEngine.name];
+
+    engineIcon.innerHTML = '';
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', iconPath);
+    path.setAttribute('fill', 'currentColor');
+    engineIcon.appendChild(path);
+}
+
+// 切换搜索引擎
+function toggleEngine() {
+    currentEngineIndex = (currentEngineIndex + 1) % engines.length;
+    storage.set({ 'searchEngine': engines[currentEngineIndex].url }, function () {
+        updateEngineIcon();
+    });
+}
 
 // 处理搜索功能
 document.getElementById('search-button').addEventListener('click', performSearch);
@@ -180,6 +216,22 @@ document.getElementById('search-input').addEventListener('keypress', function (e
         performSearch();
     }
 });
+
+// 搜索框聚焦时，给容器添加模糊效果
+function setupSearchFocusBlur() {
+    const searchInput = document.getElementById('search-input');
+    const container = document.querySelector('.container');
+
+    if (searchInput && container) {
+        searchInput.addEventListener('focus', function () {
+            container.classList.add('search-focused');
+        });
+
+        searchInput.addEventListener('blur', function () {
+            container.classList.remove('search-focused');
+        });
+    }
+}
 
 // 根据单选切换，自定义 URL 输入框显示状态
 document.addEventListener('change', function (e) {
@@ -197,10 +249,10 @@ document.addEventListener('change', function (e) {
 
 function performSearch() {
     const searchInput = document.getElementById('search-input');
-    const searchEngine = document.getElementById('search-engine');
+    const currentEngine = engines[currentEngineIndex];
 
     if (searchInput.value.trim() !== '') {
-        const searchUrl = searchEngine.value + encodeURIComponent(searchInput.value.trim());
+        const searchUrl = currentEngine.url + encodeURIComponent(searchInput.value.trim());
         window.open(searchUrl, '_blank');
     }
 }
@@ -397,39 +449,39 @@ function setupDragAndDrop() {
 
     // 为所有快捷链接添加拖拽事件监听器
     const linkElements = quickLinksContainer.querySelectorAll('a.quick-link');
-    
+
     linkElements.forEach((linkElement, index) => {
         // 拖拽开始
-        linkElement.addEventListener('dragstart', function(e) {
+        linkElement.addEventListener('dragstart', function (e) {
             draggedElement = this;
             draggedIndex = parseInt(this.dataset.index);
-            
+
             // 设置拖拽效果
             this.style.opacity = '0.5';
             this.classList.add('dragging');
-            
+
             // 设置拖拽数据
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/html', this.outerHTML);
         });
 
         // 拖拽结束
-        linkElement.addEventListener('dragend', function(e) {
+        linkElement.addEventListener('dragend', function (e) {
             this.style.opacity = '';
             this.classList.remove('dragging');
-            
+
             // 清理所有拖拽相关的样式
             const allLinks = quickLinksContainer.querySelectorAll('a.quick-link');
             allLinks.forEach(link => {
                 link.classList.remove('drag-over');
             });
-            
+
             draggedElement = null;
             draggedIndex = null;
         });
 
         // 拖拽进入
-        linkElement.addEventListener('dragenter', function(e) {
+        linkElement.addEventListener('dragenter', function (e) {
             if (draggedElement && draggedElement !== this) {
                 e.preventDefault();
                 this.classList.add('drag-over');
@@ -437,7 +489,7 @@ function setupDragAndDrop() {
         });
 
         // 拖拽悬停
-        linkElement.addEventListener('dragover', function(e) {
+        linkElement.addEventListener('dragover', function (e) {
             if (draggedElement && draggedElement !== this) {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
@@ -445,7 +497,7 @@ function setupDragAndDrop() {
         });
 
         // 拖拽离开
-        linkElement.addEventListener('dragleave', function(e) {
+        linkElement.addEventListener('dragleave', function (e) {
             // 只有当鼠标真正离开元素时才移除样式
             if (!this.contains(e.relatedTarget)) {
                 this.classList.remove('drag-over');
@@ -453,15 +505,15 @@ function setupDragAndDrop() {
         });
 
         // 放置
-        linkElement.addEventListener('drop', function(e) {
+        linkElement.addEventListener('drop', function (e) {
             if (draggedElement && draggedElement !== this) {
                 e.preventDefault();
-                
+
                 const dropIndex = parseInt(this.dataset.index);
-                
+
                 // 交换位置
                 swapLinks(draggedIndex, dropIndex);
-                
+
                 this.classList.remove('drag-over');
             }
         });
@@ -470,18 +522,18 @@ function setupDragAndDrop() {
 
 // 交换链接位置
 function swapLinks(fromIndex, toIndex) {
-    storage.get('quickLinks', function(data) {
+    storage.get('quickLinks', function (data) {
         let links = data.quickLinks || defaultLinks;
-        
+
         // 交换数组中的元素
-        if (fromIndex >= 0 && fromIndex < links.length && 
-            toIndex >= 0 && toIndex < links.length && 
+        if (fromIndex >= 0 && fromIndex < links.length &&
+            toIndex >= 0 && toIndex < links.length &&
             fromIndex !== toIndex) {
-            
+
             const temp = links[fromIndex];
             links[fromIndex] = links[toIndex];
             links[toIndex] = temp;
-            
+
             // 保存更新后的链接顺序
             saveLinks(links);
         }
@@ -648,86 +700,29 @@ document.addEventListener('DOMContentLoaded', function () {
     // 加载保存的搜索引擎选择
     storage.get('searchEngine', function (data) {
         if (data.searchEngine) {
-            document.getElementById('search-engine').value = data.searchEngine;
-            updateSearchEngineIcon();
+            const savedUrl = data.searchEngine;
+            const index = engines.findIndex(e => e.url === savedUrl);
+            if (index !== -1) {
+                currentEngineIndex = index;
+            }
         }
+        updateEngineIcon();
     });
 
-    // 保存搜索引擎选择
-    document.getElementById('search-engine').addEventListener('change', function () {
-        storage.set({ 'searchEngine': this.value });
-        updateSearchEngineIcon();
-    });
+    // 绑定搜索引擎切换事件
+    const engineSelector = document.getElementById('engine-selector');
+    if (engineSelector) {
+        engineSelector.addEventListener('click', toggleEngine);
+    }
 
     // 加载快速链接
     loadLinks();
 
-    // 初始化一次图标（处理未保存过的默认值）
-    updateSearchEngineIcon();
+    // 设置搜索框聚焦模糊效果
+    setupSearchFocusBlur();
 
-    // 初始化自定义下拉
-    initEngineDropdown();
+    // 页面加载动画
+    requestAnimationFrame(() => {
+        document.body.classList.add('loaded');
+    });
 });
-
-// 根据选择的搜索引擎切换下拉的图标样式
-function updateSearchEngineIcon() {
-    const select = document.getElementById('search-engine');
-    const value = select.value || '';
-
-    select.classList.remove('google', 'bing');
-    if (value.includes('google')) {
-        select.classList.add('google');
-    } else if (value.includes('bing')) {
-        select.classList.add('bing');
-    }
-
-    // 同步到自定义按钮图标
-    const btnIcon = document.querySelector('.engine-dropdown .engine-icon');
-    if (!btnIcon) return;
-    btnIcon.classList.remove('google', 'bing');
-    if (value.includes('google')) {
-        btnIcon.classList.add('google');
-    } else if (value.includes('bing')) {
-        btnIcon.classList.add('bing');
-    }
-}
-
-// 自定义下拉的行为
-function initEngineDropdown() {
-    const dropdown = document.getElementById('engine-dropdown');
-    if (!dropdown) return;
-    const list = dropdown.querySelector('.engine-list');
-    const button = dropdown.querySelector('.engine-btn');
-    const select = document.getElementById('search-engine');
-
-    // 打开/关闭
-    button.addEventListener('click', function () {
-        const willOpen = !list.classList.contains('open');
-        document.querySelectorAll('.engine-list.open').forEach(el => el.classList.remove('open'));
-        list.classList.toggle('open', willOpen);
-        button.setAttribute('aria-expanded', String(willOpen));
-    });
-
-    // 点击选项
-    list.querySelectorAll('.engine-option').forEach(function (item) {
-        item.addEventListener('click', function () {
-            const value = this.getAttribute('data-value');
-            select.value = value;
-            storage.set({ 'searchEngine': value });
-            updateSearchEngineIcon();
-            list.classList.remove('open');
-            button.setAttribute('aria-expanded', 'false');
-        });
-    });
-
-    // 点击外部收起
-    document.addEventListener('click', function (e) {
-        if (!dropdown.contains(e.target)) {
-            list.classList.remove('open');
-            button.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    // 根据当前 select 值设置初始图标
-    updateSearchEngineIcon();
-}

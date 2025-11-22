@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新标签页</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -17,41 +21,18 @@
 
         <div class="search-container">
             <div class="search-box-container">
-                <div class="search-engine-selector">
-                    <select id="search-engine">
-                        <option value="https://www.bing.com/search?q=">必应</option>
-                        <option value="https://www.google.com/search?q=">谷歌</option>
-                    </select>
-                    <div class="engine-dropdown" id="engine-dropdown">
-                        <button type="button" class="engine-btn" aria-haspopup="listbox" aria-expanded="false">
-                            <span class="engine-icon"></span>
-                        </button>
-                        <ul class="engine-list" role="listbox">
-                            <li class="engine-option" data-value="https://www.bing.com/search?q=" data-engine="bing"
-                                role="option">
-                                <span class="engine-option-icon bing"></span>
-                                <span class="engine-option-label">必应</span>
-                            </li>
-                            <li class="engine-option" data-value="https://www.google.com/search?q=" data-engine="google"
-                                role="option">
-                                <span class="engine-option-icon google"></span>
-                                <span class="engine-option-label">谷歌</span>
-                            </li>
-                        </ul>
+                <div class="search-wrapper">
+                    <div class="engine-selector" id="engine-selector" title="切换搜索引擎">
+                        <svg id="engine-icon" viewBox="0 0 24 24" width="20" height="20"></svg>
                     </div>
-                </div>
-                <div class="search-box">
-                    <div class="search-input-container">
-                        <input type="text" id="search-input" placeholder="输入搜索关键词..." autofocus>
-                        <button id="search-button" aria-label="搜索">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path
-                                    d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </button>
-                    </div>
+                    <input type="text" id="search-input" placeholder="Search..." autofocus>
+                    <button id="search-button" aria-label="搜索">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>

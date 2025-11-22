@@ -8,10 +8,10 @@
     --c-border: #e1e5e9;
     --c-accent: #007aff;
     --c-accent-text: #ffffff;
-    --c-input-bg: #fafbfc;
-    --c-input-border: #e1e5e9;
-    --c-input-focus-border: #007aff;
-    --c-input-focus-shadow: rgba(0, 122, 255, 0.1);
+    --c-input-bg: rgba(255, 255, 255, 0.4);
+    --c-input-border: rgba(0, 0, 0, 0.05);
+    --c-input-focus-bg: rgba(255, 255, 255, 0.7);
+    --c-input-focus-border: rgba(0, 0, 0, 0.15);
     --c-button-hover: #e5e5e7;
     --c-accent-hover: #0056cc;
     --c-shadow: rgba(0, 0, 0, 0.15);
@@ -34,7 +34,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
 body {
@@ -45,6 +45,14 @@ body {
     align-items: center;
     height: 100vh;
     width: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    padding-bottom: 20vh;
+    /* 将视觉重心上移 */
+}
+
+body.loaded {
+    opacity: 1;
 }
 
 .container {
@@ -56,22 +64,32 @@ body {
     flex-direction: column;
     justify-content: center;
     height: 100vh;
+    transition: backdrop-filter 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 当搜索框聚焦时，给容器添加模糊效果 */
+.container.search-focused {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .time-container {
-    margin-bottom: 30px;
-    margin-top: -15vh;
+    margin-bottom: 50px;
 }
 
 /* 时间显示样式 */
 .time {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    font-size: 5.6rem;
-    font-weight: 300;
-    letter-spacing: 4px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: 7rem;
+    font-weight: 100;
+    letter-spacing: -4px;
     font-variant-numeric: tabular-nums;
-    color: var(--c-text-primary);
     line-height: 1;
+    /* 深色模式：增加微弱的渐变，提升高级感 */
+    background: linear-gradient(180deg, var(--c-text-primary) 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .time .colon {
@@ -82,205 +100,109 @@ body {
 
 /* 日期显示样式 */
 .date {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    font-size: 1.3rem;
-    font-weight: 400;
-    margin-top: 30px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: 8px;
     color: var(--c-text-secondary);
-    letter-spacing: 2px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
     line-height: 1.4;
 }
 
 .search-container {
-    margin-bottom: 30px;
-    margin-top: 20px;
+    margin-bottom: 60px;
 }
 
 .search-box-container {
-    display: flex;
     width: 100%;
-    max-width: 800px;
+    max-width: 640px;
     margin: 0 auto;
-    align-items: center;
 }
 
-.search-engine-selector {
-    margin-right: 10px;
-}
-
-.search-engine-selector select {
-    padding: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 1px solid var(--c-border);
-    outline: none;
-    cursor: pointer;
-    background-color: var(--c-surface);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 24px 24px;
-    /* 隐藏文字，仅显示图标 */
-    color: transparent;
-    text-indent: -9999px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-}
-
-/* 根据类名切换不同引擎图标 */
-.search-engine-selector select.google {
-    background-image: url('icons/google.svg');
-}
-
-.search-engine-selector select.bing {
-    background-image: url('icons/bing.svg');
-}
-
-/* 自定义下拉 - 包裹容器 */
-.engine-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-/* 隐藏原生 select（仍保留无障碍和回退） */
-.search-engine-selector select {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.engine-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 1px solid var(--c-border);
-    background-color: var(--c-surface);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.engine-icon {
-    width: 24px;
-    height: 24px;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 24px 24px;
-}
-
-.engine-list {
-    position: absolute;
-    top: 52px;
-    left: 0;
-    min-width: 160px;
-    padding: 8px 6px;
-    border: 1px solid var(--c-border);
-    border-radius: 10px;
-    background-color: var(--c-surface);
-    box-shadow: 0 6px 20px var(--c-shadow-light);
-    list-style: none;
-    display: none;
-    z-index: 10;
-}
-
-.engine-list.open {
-    display: block;
-}
-
-.engine-option {
+.search-wrapper {
     display: flex;
     align-items: center;
-    padding: 8px 10px;
-    border-radius: 8px;
-    cursor: pointer;
+    background: var(--c-input-bg);
+    border-radius: 20px;
+    padding: 0 18px;
+    height: 52px;
+    border: 0.5px solid var(--c-input-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.engine-option:hover {
-    background-color: var(--c-surface-container);
-}
-
-.engine-option-icon {
-    width: 22px;
-    height: 22px;
-    margin-right: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 22px 22px;
-}
-
-.engine-option-icon.google,
-.engine-icon.google {
-    background-image: url('icons/google.svg');
-}
-
-.engine-option-icon.bing,
-.engine-icon.bing {
-    background-image: url('icons/bing.svg');
-}
-
-.search-box {
-    display: flex;
-    flex: 1;
-}
-
-.search-input-container {
-    position: relative;
-    display: flex;
-    flex: 1;
-    align-items: center;
-}
-
-.search-box input {
-    flex: 1;
-    padding: 12px 20px;
-    padding-right: 60px;
-    border: 1px solid var(--c-input-border);
-    border-radius: 30px;
-    font-size: 16px;
-    outline: none;
-    background-color: var(--c-input-bg);
-    color: var(--c-text-primary);
-    transition: all 0.3s ease;
-}
-
-.search-box input:focus {
+.search-wrapper:focus-within {
+    transform: scale(1.02);
+    background: var(--c-input-focus-bg);
     border-color: var(--c-input-focus-border);
-    box-shadow: 0 0 0 3px var(--c-input-focus-shadow);
+    border-width: 1px;
 }
 
-.search-box button {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    background-color: transparent;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.engine-selector {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--c-text-secondary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    margin-right: 10px;
+    opacity: 0.8;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.search-box button:hover {
-    background-color: var(--c-button-hover);
+.engine-selector:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.1);
+}
+
+#engine-icon {
+    width: 20px;
+    height: 20px;
+    fill: var(--c-text-primary);
+}
+
+.search-wrapper input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 400;
     color: var(--c-text-primary);
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    outline: none;
 }
 
-.search-box button svg {
+.search-wrapper input::placeholder {
+    color: var(--c-text-secondary);
+    opacity: 0.8;
+}
+
+.search-wrapper button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    color: var(--c-text-secondary);
+    transition: color 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-wrapper button:hover {
+    color: var(--c-accent);
+}
+
+.search-wrapper button svg {
     width: 20px;
     height: 20px;
 }
 
 .quick-links-section {
-    margin-top: 30px;
+    margin-top: 0;
 }
 
 .quick-links {
@@ -298,13 +220,18 @@ body {
     color: var(--c-text-primary);
     width: 80px;
     position: relative;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.quick-link:hover {
+    transform: scale(1.05);
 }
 
 .quick-link-icon {
     width: 50px;
     height: 50px;
-    border-radius: 12px;
-    /* 圆角正方形 */
+    border-radius: 14px;
+    /* iOS 风格圆角 */
     background-color: var(--c-surface-container);
     display: flex;
     justify-content: center;
@@ -314,6 +241,7 @@ body {
     overflow: hidden;
     /* 裁剪内部图片 */
     box-shadow: 0 1px 2px var(--c-shadow-light), 0 4px 10px var(--c-shadow-light);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* 让图标在方块中等比居中显示，避免被裁剪 */
@@ -426,7 +354,7 @@ body {
     background-color: var(--c-surface);
     margin: 10% auto;
     padding: 0;
-    border-radius: 16px;
+    border-radius: 20px;
     width: 90%;
     max-width: 480px;
     box-shadow: 0 20px 60px var(--c-shadow), 0 8px 25px var(--c-shadow-light);
@@ -474,7 +402,7 @@ body {
     justify-content: center;
     cursor: pointer;
     color: var(--c-text-secondary);
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .close-btn:hover {
@@ -508,7 +436,7 @@ body {
     border-radius: 12px;
     font-size: 0.95rem;
     background-color: var(--c-input-bg);
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     outline: none;
 }
 
@@ -643,7 +571,7 @@ body {
     font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     text-align: center;
 }
 
@@ -671,27 +599,34 @@ body {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+    body {
+        padding-bottom: 15vh;
+    }
+
     .time {
-        font-size: 4.5rem;
-        letter-spacing: 3px;
+        font-size: 5rem;
+        letter-spacing: -3px;
     }
 
     .date {
-        font-size: 1rem;
-        margin-top: 20px;
+        font-size: 0.85rem;
+        margin-top: 8px;
     }
 }
 
 @media (max-width: 480px) {
+    body {
+        padding-bottom: 10vh;
+    }
+
     .time {
-        font-size: 3.8rem;
-        letter-spacing: 2px;
+        font-size: 4rem;
+        letter-spacing: -2px;
     }
 
     .date {
-        font-size: 0.95rem;
-        margin-top: 18px;
-        letter-spacing: 0.8px;
+        font-size: 0.8rem;
+        margin-top: 8px;
     }
 
     .modal-content {
@@ -724,6 +659,15 @@ body {
     }
 }
 
+/* 浅色模式：时间字体不使用渐变 */
+@media (prefers-color-scheme: light) {
+    .time {
+        background: none;
+        -webkit-text-fill-color: var(--c-text-primary);
+        font-weight: 200;
+    }
+}
+
 /* 深色模式 */
 @media (prefers-color-scheme: dark) {
     :root {
@@ -736,10 +680,10 @@ body {
         --c-border: #3a3a3a;
         --c-accent: #3399ff;
         --c-accent-text: #ffffff;
-            --c-input-bg: #1a1a1a;
-    --c-input-border: #404040;
-    --c-input-focus-border: #3399ff;
-    --c-input-focus-shadow: rgba(51, 153, 255, 0.2);
+        --c-input-bg: rgba(28, 28, 30, 0.4);
+        --c-input-border: rgba(255, 255, 255, 0.08);
+        --c-input-focus-bg: rgba(28, 28, 30, 0.7);
+        --c-input-focus-border: rgba(255, 255, 255, 0.2);
         --c-button-hover: #404040;
         --c-accent-hover: #1a75ff;
         --c-shadow: rgba(0, 0, 0, 0.3);
@@ -767,28 +711,85 @@ body {
     .quick-link-icon img {
         filter: brightness(0.9) contrast(1.1);
     }
-    
-    /* 深色模式下搜索框特殊样式 */
-    .search-box input {
-        background-color: #1a1a1a;
-        border-color: #404040;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    /* 系统深色模式下搜索框常规样式 */
+    .search-wrapper {
+        background: rgba(28, 28, 30, 0.4);
+        border-color: rgba(255, 255, 255, 0.08);
+        border-width: 0.5px;
     }
-    
-    .search-box input:focus {
-        background-color: #1e1e1e;
-        border-color: #3399ff;
-        box-shadow: 0 0 0 3px rgba(51, 153, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.4);
+
+    /* 系统深色模式下搜索框聚焦样式 */
+    .search-wrapper:focus-within {
+        background: rgba(28, 28, 30, 0.7);
+        border-color: rgba(255, 255, 255, 0.2);
+        border-width: 1px;
     }
-    
-    .search-box button {
-        color: #a0a0a0;
+}
+
+/* 系统浅色模式下搜索框样式 */
+@media (prefers-color-scheme: light) {
+    .search-wrapper {
+        background: rgba(255, 255, 255, 0.4);
+        border-color: rgba(0, 0, 0, 0.05);
+        border-width: 0.5px;
     }
-    
-    .search-box button:hover {
-        background-color: rgba(51, 153, 255, 0.1);
-        color: #3399ff;
+
+    .search-wrapper:focus-within {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(0, 0, 0, 0.15);
+        border-width: 1px;
     }
+}
+
+/* 手动设置浅色主题时的时间字体 */
+body.light .time {
+    background: none;
+    -webkit-text-fill-color: var(--c-text-primary);
+    font-weight: 200;
+}
+
+/* 手动设置深色主题时的时间字体 */
+body.dark .time {
+    background: linear-gradient(180deg, var(--c-text-primary) 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 100;
+}
+
+/* 手动设置深色主题时的搜索框样式 */
+body.dark .search-wrapper {
+    background: rgba(28, 28, 30, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+    border-width: 0.5px;
+}
+
+body.dark .search-wrapper:focus-within {
+    background: rgba(28, 28, 30, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+    border-width: 1px;
+}
+
+body.dark .search-wrapper button {
+    color: #a0a0a0;
+}
+
+body.dark .search-wrapper button:hover {
+    color: #3399ff;
+}
+
+/* 手动设置浅色主题时的搜索框样式 */
+body.light .search-wrapper {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(0, 0, 0, 0.05);
+    border-width: 0.5px;
+}
+
+body.light .search-wrapper:focus-within {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.15);
+    border-width: 1px;
 }
 
 /* 主题切换按钮样式 */
@@ -805,7 +806,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     z-index: 1000;
     box-shadow: 0 4px 12px var(--c-shadow-light);
 }
