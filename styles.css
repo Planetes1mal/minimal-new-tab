@@ -130,14 +130,17 @@ body.loaded {
     border: 0.5px solid var(--c-input-border);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.03);
 }
 
 .search-wrapper:focus-within {
     transform: scale(1.02);
     background: var(--c-input-focus-bg);
-    border-color: var(--c-input-focus-border);
-    border-width: 1px;
+    border: 1px solid var(--c-input-focus-border);
+    box-shadow: 
+        0 0 0 2px rgba(0, 122, 255, 0.12),
+        0 4px 16px rgba(0, 122, 255, 0.06);
 }
 
 .engine-selector {
@@ -220,18 +223,17 @@ body.loaded {
     color: var(--c-text-primary);
     width: 80px;
     position: relative;
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .quick-link:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 
 .quick-link-icon {
     width: 50px;
     height: 50px;
     border-radius: 14px;
-    /* iOS 风格圆角 */
     background-color: var(--c-surface-container);
     display: flex;
     justify-content: center;
@@ -239,9 +241,18 @@ body.loaded {
     margin-bottom: 8px;
     font-size: 20px;
     overflow: hidden;
-    /* 裁剪内部图片 */
-    box-shadow: 0 1px 2px var(--c-shadow-light), 0 4px 10px var(--c-shadow-light);
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.04);
+    border: 0.5px solid var(--c-border);
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.quick-link:hover .quick-link-icon {
+    transform: scale(1.05);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.12),
+        0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* 让图标在方块中等比居中显示，避免被裁剪 */
@@ -319,11 +330,14 @@ body.loaded {
 .add-link-button {
     font-size: 24px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    border: 1px dashed rgba(128, 128, 128, 0.4);
+    background: rgba(128, 128, 128, 0.05);
 }
 
 .add-link-button:hover {
-    background-color: var(--c-button-hover);
+    border-color: rgba(128, 128, 128, 0.8);
+    background: rgba(128, 128, 128, 0.1);
 }
 
 /* 弹窗样式 */
@@ -354,12 +368,14 @@ body.loaded {
     background-color: var(--c-surface);
     margin: 10% auto;
     padding: 0;
-    border-radius: 20px;
+    border-radius: 24px;
     width: 90%;
     max-width: 480px;
-    box-shadow: 0 20px 60px var(--c-shadow), 0 8px 25px var(--c-shadow-light);
-    border: 1px solid var(--c-border);
-    animation: modalSlideIn 0.3s ease-out;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 0.5px solid var(--c-border);
+    animation: modalSlideIn 0.25s cubic-bezier(0.25, 1, 0.5, 1);
     overflow: hidden;
 }
 
@@ -800,21 +816,23 @@ body.light .search-wrapper:focus-within {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    border: 1px solid var(--c-theme-toggle-border);
+    border: 0.5px solid var(--c-theme-toggle-border);
     background-color: var(--c-theme-toggle-bg);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
     z-index: 1000;
-    box-shadow: 0 4px 12px var(--c-shadow-light);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .theme-toggle:hover {
     background-color: var(--c-theme-toggle-hover);
     transform: scale(1.05);
-    box-shadow: 0 6px 20px var(--c-shadow);
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.15),
+        0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .theme-toggle:active {

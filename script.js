@@ -549,6 +549,40 @@ function deleteLink(index) {
     });
 }
 
+// 统一的保存处理函数，通过 modal.dataset.mode 区分新增/编辑模式
+function handleSaveLink() {
+    const linkName = document.getElementById('link-name').value.trim();
+    let linkUrl = document.getElementById('link-url').value.trim();
+    const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
+    const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
+
+    if (linkName && linkUrl) {
+        if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+            linkUrl = 'https://' + linkUrl;
+        }
+
+        let icon = '';
+        if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
+        if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
+
+        storage.get('quickLinks', function (data) {
+            let links = data.quickLinks || defaultLinks;
+
+            if (modal.dataset.mode === 'edit') {
+                // 编辑模式：更新指定索引
+                const idx = parseInt(modal.dataset.editingIndex);
+                links[idx] = { name: linkName, url: linkUrl, iconMode, icon };
+            } else {
+                // 新增模式：push 到数组
+                links.push({ name: linkName, url: linkUrl, iconMode, icon });
+            }
+
+            saveLinks(links);
+            closeModal();
+        });
+    }
+}
+
 // 右键编辑：打开弹窗并写回
 function attachContextMenu(links) {
     const quickLinksContainer = document.getElementById('quick-links');
@@ -560,6 +594,8 @@ function attachContextMenu(links) {
                 let all = data.quickLinks || defaultLinks;
                 const current = all[idx];
 
+                modal.dataset.mode = 'edit';
+                modal.dataset.editingIndex = idx;
                 modal.style.display = 'block';
                 document.getElementById('link-name').value = current.name || '';
                 document.getElementById('link-url').value = current.url || '';
@@ -582,30 +618,6 @@ function attachContextMenu(links) {
                         customInput.value = '';
                     }
                 }
-
-                // 重设保存按钮为更新当前项
-                const updateHandler = function () {
-                    const linkName = document.getElementById('link-name').value.trim();
-                    let linkUrl = document.getElementById('link-url').value.trim();
-                    const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
-                    const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
-                    if (linkName && linkUrl) {
-                        if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
-                            linkUrl = 'https://' + linkUrl;
-                        }
-                        let icon = '';
-                        if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
-                        if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
-                        all[idx] = { name: linkName, url: linkUrl, iconMode, icon };
-                        saveLinks(all);
-                        closeModal();
-                        // 恢复默认保存
-                        saveLinkButton.onclick = defaultSaveHandler;
-                    }
-                };
-
-                // 绑定更新处理函数
-                saveLinkButton.onclick = updateHandler;
             });
         });
     });
@@ -613,14 +625,17 @@ function attachContextMenu(links) {
 
 // 添加链接模态框
 const modal = document.getElementById('add-link-modal');
+modal.dataset.mode = 'add';
 const addLinkButton = document.getElementById('add-link-button');
 const closeButton = document.querySelector('.close-btn');
 const cancelButton = document.getElementById('cancel-link');
 const saveLinkButton = document.getElementById('save-link');
 
-// 打开模态框
+// 打开模态框（新增模式）
 addLinkButton.onclick = function (e) {
-    e.preventDefault(); // 阻止链接默认行为
+    e.preventDefault();
+    modal.dataset.mode = 'add';
+    delete modal.dataset.editingIndex;
     modal.style.display = 'block';
     document.getElementById('link-name').value = '';
     document.getElementById('link-url').value = '';
@@ -640,6 +655,8 @@ addLinkButton.onclick = function (e) {
 // 关闭模态框
 function closeModal() {
     modal.style.display = 'none';
+    modal.dataset.mode = 'add';
+    delete modal.dataset.editingIndex;
 }
 
 closeButton.onclick = closeModal;
@@ -660,37 +677,11 @@ document.querySelector('.modal-content').addEventListener('click', function (e) 
 // 处理表单提交
 document.querySelector('.modal-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    defaultSaveHandler();
+    handleSaveLink();
 });
 
-// 保存新链接
-// 默认保存处理函数，供编辑后恢复
-function defaultSaveHandler() {
-    const linkName = document.getElementById('link-name').value.trim();
-    let linkUrl = document.getElementById('link-url').value.trim();
-    const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
-    const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
-
-    if (linkName && linkUrl) {
-        // 确保URL格式正确
-        if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
-            linkUrl = 'https://' + linkUrl;
-        }
-
-        storage.get('quickLinks', function (data) {
-            let links = data.quickLinks || defaultLinks;
-            let icon = '';
-            if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
-            if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
-            links.push({ name: linkName, url: linkUrl, iconMode, icon });
-            saveLinks(links);
-            closeModal();
-        });
-    }
-}
-
-// 绑定默认保存逻辑
-saveLinkButton.onclick = defaultSaveHandler;
+// 绑定保存逻辑（统一使用 handleSaveLink）
+saveLinkButton.onclick = handleSaveLink;
 
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
