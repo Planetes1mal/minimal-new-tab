@@ -907,3 +907,139 @@ body.light .search-wrapper:focus-within {
         height: 16px;
     }
 }
+
+/* 右下角按钮通用样式 */
+.corner-btn {
+    position: fixed;
+    bottom: 30px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 0.5px solid var(--c-theme-toggle-border);
+    background-color: var(--c-theme-toggle-bg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.corner-btn:hover {
+    background-color: var(--c-theme-toggle-hover);
+    transform: scale(1.05);
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.15),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.corner-btn:active {
+    transform: scale(0.95);
+}
+
+/* 设置按钮位置 */
+#settings-btn {
+    right: 90px;
+}
+
+/* 主题切换按钮位置 */
+.theme-toggle {
+    right: 30px;
+}
+
+/* 导入文本框 */
+textarea#import-json {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--c-input-border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    background-color: var(--c-input-bg);
+    color: var(--c-text-primary);
+    resize: vertical;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+    box-sizing: border-box;
+}
+
+textarea#import-json:focus {
+    border-color: var(--c-accent);
+    background-color: var(--c-surface);
+}
+
+textarea#import-json::placeholder {
+    color: var(--c-text-secondary);
+}
+
+/* 导入文件按钮 */
+input[type="file"]#import-file {
+    width: 100%;
+    padding: 12px;
+    border: 1px dashed var(--c-border);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    background-color: var(--c-surface-container);
+    color: var(--c-text-secondary);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+input[type="file"]#import-file:hover {
+    border-color: var(--c-accent);
+    background-color: var(--c-segment-hover);
+}
+
+/* 导入提示消息 */
+.import-message {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9rem;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.import-message.success {
+    background-color: rgba(52, 199, 89, 0.15);
+    color: #34c759;
+}
+
+.import-message.error {
+    background-color: rgba(255, 59, 48, 0.15);
+    color: #ff3b30;
+}
+
+/* 响应式设计 - 右下角按钮 */
+@media (max-width: 768px) {
+    #settings-btn {
+        right: 80px;
+        bottom: 20px;
+        width: 44px;
+        height: 44px;
+    }
+
+    .theme-toggle {
+        right: 20px;
+        bottom: 20px;
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (max-width: 480px) {
+    #settings-btn {
+        right: 70px;
+        bottom: 15px;
+        width: 40px;
+        height: 40px;
+    }
+
+    .theme-toggle {
+        right: 15px;
+        bottom: 15px;
+        width: 40px;
+        height: 40px;
+    }
+}

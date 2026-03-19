@@ -683,6 +683,132 @@ document.querySelector('.modal-form').addEventListener('submit', function (e) {
 // 绑定保存逻辑（统一使用 handleSaveLink）
 saveLinkButton.onclick = handleSaveLink;
 
+// 设置弹窗相关
+const settingsModal = document.getElementById('settings-modal');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsCloseBtn = document.getElementById('settings-close-btn');
+const exportBtn = document.getElementById('export-btn');
+const importBtn = document.getElementById('import-btn');
+const importSection = document.getElementById('import-section');
+const importJson = document.getElementById('import-json');
+const importFile = document.getElementById('import-file');
+const importMessage = document.getElementById('import-message');
+
+function initSettings() {
+    // 打开设置弹窗
+    settingsBtn.addEventListener('click', function () {
+        settingsModal.style.display = 'block';
+        importSection.style.display = 'none';
+        importMessage.style.display = 'none';
+        importJson.value = '';
+    });
+
+    // 关闭设置弹窗
+    settingsCloseBtn.addEventListener('click', closeSettingsModal);
+    settingsModal.addEventListener('click', function (e) {
+        if (e.target === settingsModal) {
+            closeSettingsModal();
+        }
+    });
+
+    // 导出
+    exportBtn.addEventListener('click', exportLinks);
+
+    // 导入
+    importBtn.addEventListener('click', function () {
+        importSection.style.display = 'block';
+    });
+
+    // 文件导入
+    importFile.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    handleImportData(data);
+                } catch (err) {
+                    showImportMessage('JSON 格式错误', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    // 粘贴导入
+    importJson.addEventListener('input', function () {
+        const text = importJson.value.trim();
+        if (text) {
+            try {
+                const data = JSON.parse(text);
+                handleImportData(data);
+            } catch (err) {
+                // 正在输入，不显示错误
+            }
+        }
+    });
+}
+
+function closeSettingsModal() {
+    settingsModal.style.display = 'none';
+}
+
+function exportLinks() {
+    storage.get('quickLinks', function (data) {
+        const links = data.quickLinks || defaultLinks;
+        const exportData = {
+            version: 1,
+            links: links
+        };
+        const json = JSON.stringify(exportData, null, 2);
+
+        // 下载文件
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'quick-links-backup.json';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // 复制到剪贴板
+        navigator.clipboard.writeText(json).then(function () {
+            showImportMessage('已导出并复制到剪贴板', 'success');
+        }).catch(function () {
+            showImportMessage('已下载文件', 'success');
+        });
+    });
+}
+
+function handleImportData(data) {
+    if (!data || !data.links || !Array.isArray(data.links)) {
+        showImportMessage('JSON 格式错误：缺少 links 数组', 'error');
+        return;
+    }
+
+    // 验证链接格式
+    for (const link of data.links) {
+        if (!link.name || !link.url) {
+            showImportMessage('JSON 格式错误：链接缺少 name 或 url', 'error');
+            return;
+        }
+    }
+
+    // 保存并更新
+    storage.set({ 'quickLinks': data.links }, function () {
+        renderLinks(data.links);
+        showImportMessage('导入成功！', 'success');
+        setTimeout(closeSettingsModal, 1500);
+    });
+}
+
+function showImportMessage(text, type) {
+    importMessage.textContent = text;
+    importMessage.className = 'import-message ' + type;
+    importMessage.style.display = 'block';
+}
+
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
     // 初始化主题管理器
@@ -711,6 +837,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 设置搜索框聚焦模糊效果
     setupSearchFocusBlur();
+
+    // 设置按钮
+    initSettings();
 
     // 页面加载动画
     requestAnimationFrame(() => {

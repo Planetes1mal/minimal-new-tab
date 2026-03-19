@@ -48,6 +48,14 @@
         </div>
     </div>
 
+    <!-- 设置按钮 -->
+    <button id="settings-btn" class="corner-btn" aria-label="设置">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </button>
+
     <!-- 主题切换按钮 -->
     <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">
         <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 50 50" fill="none">
@@ -70,6 +78,36 @@
                 d="M25.068,48.889c-9.173,0-18.017-5.06-22.396-13.804C-3.373,23.008,1.164,8.467,13.003,1.979l2.061-1.129l-0.615,2.268 c-1.479,5.459-0.899,11.25,1.633,16.306c2.75,5.493,7.476,9.587,13.305,11.526c5.831,1.939,12.065,1.492,17.559-1.258v0 c0.25-0.125,0.492-0.258,0.734-0.391l2.061-1.13l-0.585,2.252c-1.863,6.873-6.577,12.639-12.933,15.822 C32.639,48.039,28.825,48.888,25.068,48.889z M12.002,4.936c-9.413,6.428-12.756,18.837-7.54,29.253 c5.678,11.34,19.522,15.945,30.864,10.268c5.154-2.582,9.136-7.012,11.181-12.357c-5.632,2.427-11.882,2.702-17.752,0.748 c-6.337-2.108-11.473-6.557-14.463-12.528C11.899,15.541,11.11,10.16,12.002,4.936z" />
         </svg>
     </button>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>设置</h2>
+                <button class="close-btn" id="settings-close-btn" aria-label="关闭">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-form">
+                <div class="form-group">
+                    <label>快捷链接管理</label>
+                    <div style="display: flex; gap: 12px;">
+                        <button id="export-btn" class="btn btn-primary" style="flex: 1;">导出</button>
+                        <button id="import-btn" class="btn btn-secondary" style="flex: 1;">导入</button>
+                    </div>
+                </div>
+                <div id="import-section" class="form-group" style="display: none;">
+                    <label>粘贴 JSON 数据</label>
+                    <textarea id="import-json" placeholder='{"version":1,"links":[...]}' rows="4"></textarea>
+                    <div style="margin-top: 12px; text-align: center; color: var(--c-text-secondary);">或</div>
+                    <input type="file" id="import-file" accept=".json" style="margin-top: 12px;">
+                </div>
+                <div id="import-message" class="import-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
 
     <div id="add-link-modal" class="modal">
         <div class="modal-content">

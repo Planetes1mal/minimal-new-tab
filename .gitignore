@@ -3,3 +3,6 @@ archive/**
 
 .cursor/
 .cursor/**
+
+.opencode/
+.opencode/**
