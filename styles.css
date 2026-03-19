@@ -1,33 +1,33 @@
 :root {
-    /* 浅色模式颜色变量 */
-    --c-bg: #ffffff;
+    /* 浅色模式颜色变量 - 柔和色调 */
+    --c-bg: #f8f9fa;
     --c-surface: #ffffff;
-    --c-surface-container: #f5f5f7;
-    --c-text-primary: #1a1a1a;
-    --c-text-secondary: #666666;
-    --c-border: #e1e5e9;
-    --c-accent: #007aff;
+    --c-surface-container: #f1f3f4;
+    --c-text-primary: #202124;
+    --c-text-secondary: #5f6368;
+    --c-border: rgba(0, 0, 0, 0.08);
+    --c-accent: #1a73e8;
     --c-accent-text: #ffffff;
-    --c-input-bg: rgba(255, 255, 255, 0.4);
-    --c-input-border: rgba(0, 0, 0, 0.05);
-    --c-input-focus-bg: rgba(255, 255, 255, 0.7);
-    --c-input-focus-border: rgba(0, 0, 0, 0.15);
-    --c-button-hover: #e5e5e7;
-    --c-accent-hover: #0056cc;
-    --c-shadow: rgba(0, 0, 0, 0.15);
-    --c-shadow-light: rgba(0, 0, 0, 0.1);
-    --c-modal-overlay: rgba(0, 0, 0, 0.5);
-    --c-segment-bg: #f5f5f7;
-    --c-segment-border: #e1e5e9;
-    --c-segment-divider: #d1d5db;
-    --c-segment-hover: rgba(0, 122, 255, 0.1);
-    --c-segment-hover-text: #007aff;
+    --c-input-bg: rgba(255, 255, 255, 0.7);
+    --c-input-border: rgba(0, 0, 0, 0.06);
+    --c-input-focus-bg: rgba(255, 255, 255, 0.9);
+    --c-input-focus-border: rgba(26, 115, 232, 0.4);
+    --c-button-hover: #e8eaed;
+    --c-accent-hover: #1557b0;
+    --c-shadow: rgba(0, 0, 0, 0.1);
+    --c-shadow-light: rgba(0, 0, 0, 0.05);
+    --c-modal-overlay: rgba(0, 0, 0, 0.4);
+    --c-segment-bg: #f1f3f4;
+    --c-segment-border: rgba(0, 0, 0, 0.08);
+    --c-segment-divider: rgba(0, 0, 0, 0.12);
+    --c-segment-hover: rgba(26, 115, 232, 0.08);
+    --c-segment-hover-text: #1a73e8;
     --c-custom-url-bg: #f8f9fa;
-    --c-custom-url-border: #e9ecef;
-    --c-delete-button: #ff6b6b;
-    --c-theme-toggle-bg: #f5f5f7;
-    --c-theme-toggle-border: #e1e5e9;
-    --c-theme-toggle-hover: #e5e5e7;
+    --c-custom-url-border: rgba(0, 0, 0, 0.08);
+    --c-delete-button: #ea4335;
+    --c-theme-toggle-bg: rgba(255, 255, 255, 0.8);
+    --c-theme-toggle-border: rgba(0, 0, 0, 0.08);
+    --c-theme-toggle-hover: #e8eaed;
 }
 
 * {
@@ -797,15 +797,18 @@ body.dark .search-wrapper button:hover {
 
 /* 手动设置浅色主题时的搜索框样式 */
 body.light .search-wrapper {
-    background: rgba(255, 255, 255, 0.4);
-    border-color: rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.06);
     border-width: 0.5px;
 }
 
 body.light .search-wrapper:focus-within {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(26, 115, 232, 0.4);
     border-width: 1px;
+    box-shadow: 
+        0 0 0 2px rgba(26, 115, 232, 0.12),
+        0 4px 16px rgba(26, 115, 232, 0.06);
 }
 
 /* 主题切换按钮样式 */
@@ -924,6 +927,7 @@ body.light .search-wrapper:focus-within {
     transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: var(--c-text-secondary);
 }
 
 .corner-btn:hover {
@@ -932,6 +936,7 @@ body.light .search-wrapper:focus-within {
     box-shadow: 
         0 4px 16px rgba(0, 0, 0, 0.15),
         0 2px 8px rgba(0, 0, 0, 0.1);
+    color: var(--c-text-primary);
 }
 
 .corner-btn:active {
