@@ -144,6 +144,7 @@ body.loaded {
 }
 
 .engine-selector {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -164,6 +165,80 @@ body.loaded {
     width: 20px;
     height: 20px;
     fill: var(--c-text-primary);
+}
+
+/* 搜索引擎下拉菜单 */
+.engine-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 8px;
+    min-width: 180px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 4px;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.engine-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* 如果菜单靠近视口底部，向上展开 */
+.engine-dropdown.expand-up {
+    top: auto;
+    bottom: 100%;
+    transform: translateY(10px);
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+.engine-dropdown.show.expand-up {
+    transform: translateY(0);
+}
+
+.engine-option {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.engine-option:hover {
+    background-color: var(--c-segment-hover);
+}
+
+.engine-option.active {
+    background-color: var(--c-accent);
+    color: white;
+}
+
+.engine-option.active span {
+    color: white;
+}
+
+.engine-option svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.engine-option span {
+    font-size: 14px;
+    color: var(--c-text-primary);
 }
 
 .search-wrapper input {
