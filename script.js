@@ -190,6 +190,10 @@ const engines = [
 // 当前搜索引擎索引
 let currentEngineIndex = 0;
 
+// DOM元素引用（在DOMContentLoaded中初始化）
+let engineSelector;
+let engineDropdown;
+
 // 更新搜索引擎图标
 function updateEngineIcon() {
     const engineIcon = document.getElementById('engine-icon');
@@ -203,12 +207,124 @@ function updateEngineIcon() {
     engineIcon.appendChild(path);
 }
 
-// 切换搜索引擎
-function toggleEngine() {
-    currentEngineIndex = (currentEngineIndex + 1) % engines.length;
-    storage.set({ 'searchEngine': engines[currentEngineIndex].url }, function () {
-        updateEngineIcon();
+// 初始化下拉菜单
+function initEngineDropdown() {
+    engineDropdown.innerHTML = '';
+
+    engines.forEach((engine, index) => {
+        const option = document.createElement('div');
+        option.className = 'engine-option';
+        option.setAttribute('role', 'menuitem');
+        option.setAttribute('tabindex', '0');
+
+        if (index === currentEngineIndex) {
+            option.classList.add('active');
+        }
+
+        option.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="${engineIcons[engine.name]}"/>
+            </svg>
+            <span>${engine.name.charAt(0).toUpperCase() + engine.name.slice(1)}</span>
+        `;
+
+        // 点击选择
+        option.addEventListener('click', () => {
+            selectEngine(index);
+        });
+
+        // 键盘支持
+        option.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                selectEngine(index);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                focusNextOption(index);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                focusPrevOption(index);
+            }
+        });
+
+        engineDropdown.appendChild(option);
     });
+
+    // 添加ARIA属性
+    engineDropdown.setAttribute('role', 'menu');
+    engineDropdown.setAttribute('aria-label', '选择搜索引擎');
+}
+
+// 切换下拉菜单显示/隐藏
+function toggleEngineDropdown() {
+    const isShown = engineDropdown.classList.contains('show');
+    engineDropdown.classList.toggle('show');
+    engineSelector.setAttribute('aria-expanded', !isShown);
+
+    // 如果打开菜单，调整位置并聚焦
+    if (!isShown) {
+        // 使用requestAnimationFrame确保DOM更新后再调整位置
+        requestAnimationFrame(() => {
+            adjustDropdownPosition();
+            const firstOption = engineDropdown.querySelector('.engine-option');
+            if (firstOption) firstOption.focus();
+        });
+    }
+}
+
+// 调整下拉菜单位置，避免超出视口
+function adjustDropdownPosition() {
+    const rect = engineDropdown.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    // 如果菜单底部超出视口，向上展开
+    if (rect.bottom > viewportHeight) {
+        engineDropdown.classList.add('expand-up');
+    } else {
+        engineDropdown.classList.remove('expand-up');
+    }
+}
+
+// 选择搜索引擎
+function selectEngine(index) {
+    currentEngineIndex = index;
+    storage.set({ 'searchEngine': engines[currentEngineIndex].url }, function () {
+        if (chrome.runtime.lastError) {
+            console.error('保存搜索引擎设置失败:', chrome.runtime.lastError);
+            return;
+        }
+        updateEngineIcon();
+        updateDropdownActive();
+        engineDropdown.classList.remove('show');
+        engineSelector.setAttribute('aria-expanded', 'false');
+        engineSelector.focus(); // 返回焦点到触发元素
+    });
+}
+
+// 更新下拉菜单活动状态
+function updateDropdownActive() {
+    const options = engineDropdown.querySelectorAll('.engine-option');
+    options.forEach((option, index) => {
+        if (index === currentEngineIndex) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+}
+
+// 键盘导航：聚焦下一个选项
+function focusNextOption(currentIndex) {
+    const options = engineDropdown.querySelectorAll('.engine-option');
+    const nextIndex = (currentIndex + 1) % options.length;
+    options[nextIndex].focus();
+}
+
+// 键盘导航：聚焦上一个选项
+function focusPrevOption(currentIndex) {
+    const options = engineDropdown.querySelectorAll('.engine-option');
+    const prevIndex = (currentIndex - 1 + options.length) % options.length;
+    options[prevIndex].focus();
 }
 
 // 处理搜索功能
@@ -813,6 +929,16 @@ function showImportMessage(text, type) {
 
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
+    // 获取DOM元素
+    engineSelector = document.getElementById('engine-selector');
+    engineDropdown = document.getElementById('engine-dropdown');
+
+    // 安全检查：确保元素存在
+    if (!engineSelector || !engineDropdown) {
+        console.error('搜索引擎选择器元素未找到');
+        return;
+    }
+
     // 初始化主题管理器
     themeManager.init();
 
@@ -828,11 +954,31 @@ document.addEventListener('DOMContentLoaded', function () {
         updateEngineIcon();
     });
 
-    // 绑定搜索引擎切换事件
-    const engineSelector = document.getElementById('engine-selector');
-    if (engineSelector) {
-        engineSelector.addEventListener('click', toggleEngine);
-    }
+    // 搜索引擎选择器点击事件
+    engineSelector.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleEngineDropdown();
+    });
+
+    // 点击外部关闭下拉菜单
+    document.addEventListener('click', function(event) {
+        if (!engineSelector.contains(event.target)) {
+            engineDropdown.classList.remove('show');
+            engineSelector.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // 键盘支持：Escape关闭菜单
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && engineDropdown.classList.contains('show')) {
+            engineDropdown.classList.remove('show');
+            engineSelector.setAttribute('aria-expanded', 'false');
+            engineSelector.focus();
+        }
+    });
+
+    // 初始化下拉菜单
+    initEngineDropdown();
 
     // 加载快速链接
     loadLinks();
