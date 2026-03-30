@@ -31,7 +31,7 @@
 
 ### 搜索功能
 - 在搜索框中输入关键词
-- 点击左侧图标切换搜索引擎（谷歌/必应）
+- 点击左侧图标选择搜索引擎（Google / Bing / Yandex）
 - 按回车键或点击搜索图标进行搜索
 
 ### 快速链接管理
@@ -71,16 +71,8 @@ minimal-new-tab/
 ├── newtab.html           # 新标签页HTML
 ├── styles.css            # 样式文件（包含主题系统）
 ├── script.js             # JavaScript逻辑
-├── icons/                # 图标资源
-│   ├── google.svg        # 谷歌图标
-│   ├── bing.svg          # 必应图标
-│   ├── search.svg        # 搜索图标
-│   ├── sun.svg           # 太阳图标
-│   ├── moon.svg          # 月亮图标
-│   └── icons/  
-│       └── icon*.png     # 扩展图标
-├── docs/                 # 文档
-│   └── README.en.md      # 英文文档
+├── icons/                # 图标资源目录
+├── docs/                 # 文档目录
 └── README.md             # 中文文档
 ```
 
