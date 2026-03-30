@@ -132,6 +132,8 @@ body.loaded {
     -webkit-backdrop-filter: blur(20px);
     transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
     box-shadow: 0 0 0 1px rgba(0, 122, 255, 0.03);
+    position: relative;
+    z-index: 100;
 }
 
 .search-wrapper:focus-within {
@@ -181,7 +183,7 @@ body.loaded {
     overflow-y: auto;
     box-shadow: 0 4px 12px var(--c-shadow);
     margin-top: 4px;
-    z-index: 100;
+    z-index: 10000;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
