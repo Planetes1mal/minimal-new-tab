@@ -1,0 +1,75 @@
+<h2>搜索引擎选择器设计方案</h2>
+<p class="subtitle">点击搜索框左侧图标时，下拉菜单显示所有搜索引擎选项</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>简洁下拉菜单</h3>
+      <p>点击图标后，显示带图标的下拉菜单，每个选项包含搜索引擎图标和名称</p>
+    </div>
+  </div>
+  
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>紧凑下拉菜单</h3>
+      <p>只显示图标，点击后展开为图标网格，节省空间</p>
+    </div>
+  </div>
+  
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>浮动面板</h3>
+      <p>点击图标后，在搜索框下方显示浮动面板，包含搜索引擎列表和设置</p>
+    </div>
+  </div>
+</div>
+
+<h3>当前实现对比</h3>
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">当前：点击切换</div>
+    <div class="mockup-body">
+      <div class="mock-input" style="display: flex; align-items: center;">
+        <div style="width: 30px; height: 30px; background: #eee; display: flex; align-items: center; justify-content: center; margin-right: 8px; border-radius: 4px;">
+          <span style="font-size: 12px;">🔍</span>
+        </div>
+        <div style="flex: 1; height: 20px; background: #f5f5f5;"></div>
+        <div style="width: 30px; height: 30px; background: #007bff; border-radius: 4px; margin-left: 8px;"></div>
+      </div>
+      <p style="font-size: 12px; color: #666; margin-top: 8px;">点击图标循环切换：Google → Bing → Yandex</p>
+    </div>
+  </div>
+  
+  <div class="mockup">
+    <div class="mockup-header">新设计：下拉菜单</div>
+    <div class="mockup-body">
+      <div class="mock-input" style="display: flex; align-items: center; position: relative;">
+        <div style="width: 30px; height: 30px; background: #eee; display: flex; align-items: center; justify-content: center; margin-right: 8px; border-radius: 4px;">
+          <span style="font-size: 12px;">🔍</span>
+        </div>
+        <div style="flex: 1; height: 20px; background: #f5f5f5;"></div>
+        <div style="width: 30px; height: 30px; background: #007bff; border-radius: 4px; margin-left: 8px;"></div>
+        
+        <!-- 下拉菜单示例 -->
+        <div style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 8px; width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 4px; z-index: 10;">
+          <div style="display: flex; align-items: center; padding: 8px; border-radius: 4px; cursor: pointer;">
+            <span style="margin-right: 8px;">🔍</span>
+            <span>Google</span>
+          </div>
+          <div style="display: flex; align-items: center; padding: 8px; border-radius: 4px; cursor: pointer;">
+            <span style="margin-right: 8px;">🅱️</span>
+            <span>Bing</span>
+          </div>
+          <div style="display: flex; align-items: center; padding: 8px; border-radius: 4px; cursor: pointer;">
+            <span style="margin-right: 8px;">🇾</span>
+            <span>Yandex</span>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 12px; color: #666; margin-top: 8px;">点击图标显示下拉菜单，直接选择目标搜索引擎</p>
+    </div>
+  </div>
+</div>
