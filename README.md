@@ -2,8 +2,6 @@
 
 一个极简的新标签页扩展，适用于 Chrome 与 Microsoft Edge。
 
-以搜索为视觉锚点的居中构图：大时钟在上，柔和胶囊搜索居中，快捷链接启动器在下。纯原生 HTML、CSS、JavaScript，无框架、无构建步骤、无远程依赖。
-
 ## 安装
 
 1. 克隆仓库：`git clone https://github.com/Planetes1mal/minimal-new-tab.git`
