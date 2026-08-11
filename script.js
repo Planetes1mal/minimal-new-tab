@@ -319,7 +319,7 @@ const shortcutManager = {
             }
             case 'openSettings':
                 settingsModal.style.display = 'block';
-                showSettingsSection('appearance');
+                showSettingsSection('general');
                 break;
             case 'toggleTheme':
                 themeManager.toggleTheme();
@@ -1253,16 +1253,16 @@ const settingsModal = document.getElementById('settings-modal');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
 const settingsNavItems = {
-    appearance: document.getElementById('nav-appearance'),
     general: document.getElementById('nav-general'),
+    appearance: document.getElementById('nav-appearance'),
     links: document.getElementById('nav-links'),
     backup: document.getElementById('nav-backup'),
     shortcuts: document.getElementById('nav-shortcuts'),
     about: document.getElementById('nav-about')
 };
 const settingsSections = {
-    appearance: document.getElementById('appearance-section'),
     general: document.getElementById('general-section'),
+    appearance: document.getElementById('appearance-section'),
     links: document.getElementById('links-section'),
     backup: document.getElementById('backup-section'),
     shortcuts: document.getElementById('shortcuts-section'),
@@ -1308,7 +1308,7 @@ function initSettings() {
     // 打开设置弹窗，默认停留在外观分区
     settingsBtn.addEventListener('click', function () {
         settingsModal.style.display = 'block';
-        showSettingsSection('appearance');
+        showSettingsSection('general');
     });
 
     // 关闭设置弹窗
