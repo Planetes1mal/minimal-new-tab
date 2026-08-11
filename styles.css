@@ -529,7 +529,7 @@ body.loaded .launcher {
     opacity: 0.35;
 }
 
-/* 拖拽插入指示线 */
+/* 拖拽插入指示线：默认竖线（横向布局，如启动器） */
 .drag-indicator {
     position: absolute;
     top: 0;
@@ -538,6 +538,13 @@ body.loaded .launcher {
     background: var(--c-accent);
     pointer-events: none;
     z-index: 5;
+}
+
+/* 纵向布局（如设置页链接列表）：两行之间的横线，JS 覆盖具体定位 */
+.drag-indicator-vertical {
+    left: 0;
+    width: 100%;
+    height: 2px;
 }
 
 .quick-link {

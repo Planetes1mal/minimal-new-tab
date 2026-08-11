@@ -941,20 +941,30 @@ function renderSettingsLinks(links) {
 // 通用插入式拖拽：容器内的 [data-index] 子项可拖拽，拖拽时在目标空隙显示
 // 插入指示线，松手后回调 onDrop(fromIndex, toIndex)。容器清空重渲染后
 // 调用返回对象的 refresh() 重新挂载指示线。
-function createInsertionDrag(container, onDrop) {
+// direction: 'horizontal'（横向排列，竖线，如启动器）| 'vertical'（纵向
+// 排列，横线，如设置页链接列表）。
+function createInsertionDrag(container, onDrop, direction) {
+    const isVertical = direction === 'vertical';
     const indicator = document.createElement('div');
-    indicator.className = 'drag-indicator';
+    indicator.className = 'drag-indicator' + (isVertical ? ' drag-indicator-vertical' : '');
     indicator.style.display = 'none';
     container.appendChild(indicator);
 
     let draggedElement = null;
     let draggedIndex = null;
 
-    // 鼠标到子项左/右边缘的最近距离（换行布局下按角点距离计算）
-    function edgeDistance(clientX, clientY, edgeX, top, bottom) {
-        const dx = clientX - edgeX;
-        if (clientY < top) return Math.hypot(dx, clientY - top);
-        if (clientY > bottom) return Math.hypot(dx, clientY - bottom);
+    // 到子项边缘的最近距离：横向比较左/右边缘，纵向比较上/下边缘；
+    // 鼠标在子项另一轴越界时按角点距离计算（多行/多列布局下仍正确）。
+    function edgeDistance(clientX, clientY, edgePos, start, end) {
+        if (isVertical) {
+            const dy = clientY - edgePos;
+            if (clientX < start) return Math.hypot(dy, clientX - start);
+            if (clientX > end) return Math.hypot(dy, clientX - end);
+            return Math.abs(dy);
+        }
+        const dx = clientX - edgePos;
+        if (clientY < start) return Math.hypot(dx, clientY - start);
+        if (clientY > end) return Math.hypot(dx, clientY - end);
         return Math.abs(dx);
     }
 
@@ -967,21 +977,27 @@ function createInsertionDrag(container, onDrop) {
         let bestIndex = 0;
         items.forEach((item, index) => {
             const rect = item.getBoundingClientRect();
-            const leftDistance = edgeDistance(clientX, clientY, rect.left, rect.top, rect.bottom);
-            const rightDistance = edgeDistance(clientX, clientY, rect.right, rect.top, rect.bottom);
-            if (leftDistance < bestDistance) {
-                bestDistance = leftDistance;
+            const firstDistance = edgeDistance(clientX, clientY,
+                isVertical ? rect.top : rect.left,
+                isVertical ? rect.left : rect.top,
+                isVertical ? rect.right : rect.bottom);
+            const lastDistance = edgeDistance(clientX, clientY,
+                isVertical ? rect.bottom : rect.right,
+                isVertical ? rect.left : rect.top,
+                isVertical ? rect.right : rect.bottom);
+            if (firstDistance < bestDistance) {
+                bestDistance = firstDistance;
                 bestIndex = index;
             }
-            if (rightDistance < bestDistance) {
-                bestDistance = rightDistance;
+            if (lastDistance < bestDistance) {
+                bestDistance = lastDistance;
                 bestIndex = index + 1;
             }
         });
         return bestIndex;
     }
 
-    // 在插入位置显示指示线
+    // 在插入位置显示指示线：横向为行间竖线，纵向为两行之间的横线
     function showIndicator(insertIndex) {
         const items = Array.from(container.querySelectorAll('[data-index]'));
         if (!items.length) return;
@@ -989,12 +1005,23 @@ function createInsertionDrag(container, onDrop) {
         const edgeItem = insertIndex >= items.length ? items[items.length - 1] : items[insertIndex];
         const edgeRect = edgeItem.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
-        const x = insertIndex >= items.length ? edgeRect.right : edgeRect.left;
 
+        if (isVertical) {
+            // 横线：插到第 insertIndex 行的上边缘（末尾为最后一行下边缘）
+            const y = insertIndex >= items.length ? edgeRect.bottom : edgeRect.top;
+            indicator.style.left = '0px';
+            indicator.style.width = `${containerRect.width}px`;
+            indicator.style.top = `${y - containerRect.top - 1}px`;
+            indicator.style.height = '2px';
+        } else {
+            // 竖线：位于目标行的左/右边缘
+            const x = insertIndex >= items.length ? edgeRect.right : edgeRect.left;
+            indicator.style.top = `${edgeRect.top - containerRect.top}px`;
+            indicator.style.height = `${edgeRect.height}px`;
+            indicator.style.left = `${x - containerRect.left - 1}px`;
+            indicator.style.width = '2px';
+        }
         indicator.style.display = 'block';
-        indicator.style.top = `${edgeRect.top - containerRect.top}px`;
-        indicator.style.height = `${edgeRect.height}px`;
-        indicator.style.left = `${x - containerRect.left - 1}px`;
     }
 
     container.addEventListener('dragstart', function (e) {
@@ -1057,7 +1084,7 @@ function setupDragAndDrop() {
     launcherDrag = createInsertionDrag(document.getElementById('quick-links'), insertLink);
 }
 
-// 设置页快捷链接列表拖拽（与启动器同一存储层）
+// 设置页快捷链接列表拖拽（纵向布局，横线指示，与启动器同一存储层）
 let settingsListDrag = null;
 
 function setupSettingsListDrag() {
@@ -1065,7 +1092,7 @@ function setupSettingsListDrag() {
         settingsListDrag.refresh();
         return;
     }
-    settingsListDrag = createInsertionDrag(document.getElementById('settings-link-list'), insertLink);
+    settingsListDrag = createInsertionDrag(document.getElementById('settings-link-list'), insertLink, 'vertical');
 }
 
 // 插入链接：把 fromIndex 的链接移动到 toIndex（后续条目依次后移）
