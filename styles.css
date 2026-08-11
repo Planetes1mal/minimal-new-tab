@@ -353,7 +353,7 @@ button {
     max-width: 760px;
     min-height: 100vh;
     margin: 0 auto;
-    padding: calc(50vh - 214px) 24px 64px;
+    padding: calc(50vh - 230px) 24px 64px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -365,6 +365,10 @@ button {
 .launcher {
     width: 100%;
     opacity: 0;
+}
+
+.time-block,
+.launcher {
     transform: translateY(8px);
 }
 
@@ -372,8 +376,9 @@ body.loaded .time-block {
     animation: content-enter 0.34s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
+/* 搜索框只做透明度入场，避免与聚焦时的 scale 变换冲突 */
 body.loaded .search-wrapper {
-    animation: content-enter 0.34s 0.06s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    animation: fade-enter 0.34s 0.06s ease forwards;
 }
 
 body.loaded .launcher {
@@ -387,6 +392,12 @@ body.loaded .launcher {
     }
 }
 
+@keyframes fade-enter {
+    to {
+        opacity: 1;
+    }
+}
+
 /* 时间与日期：时钟是最大文字元素，日期为次要的紧凑大写英文 */
 .time-block {
     margin-bottom: 44px;
@@ -394,51 +405,51 @@ body.loaded .launcher {
 
 .time {
     font-family: var(--font-display);
-    font-size: 6.75rem;
-    font-weight: 300;
+    font-size: 7.5rem;
+    font-weight: 200;
     font-variant-numeric: tabular-nums;
     line-height: 0.95;
-    letter-spacing: 0;
+    letter-spacing: 0.04em;
     color: var(--c-text-primary);
 }
 
 .time .colon {
     display: inline-block;
     width: 0.7ch;
-    color: var(--c-accent);
+    color: var(--c-text-primary);
     text-align: center;
 }
 
 .date {
-    margin-top: 15px;
+    margin-top: 16px;
     font-family: var(--font-display);
-    font-size: 0.76rem;
+    font-size: 0.95rem;
     font-weight: 600;
     line-height: 1.4;
-    letter-spacing: 0;
+    letter-spacing: 0.12em;
     color: var(--c-text-secondary);
     text-transform: uppercase;
 }
 
-/* 搜索表面：大尺寸、克制圆角、细边框与清晰聚焦态 */
+/* 搜索表面：柔和胶囊 —— 无边框、浅填充、大圆角，聚焦时微缩放 + 强调环 */
 .search-wrapper {
     max-width: 640px;
     height: 70px;
     padding: 0 10px;
     display: flex;
     align-items: center;
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: 8px;
-    box-shadow: 0 14px 38px var(--c-shadow);
-    transition: border-color 0.22s cubic-bezier(0.25, 1, 0.5, 1),
+    background: var(--c-surface-muted);
+    border-radius: 24px;
+    box-shadow: 0 4px 16px var(--c-shadow);
+    transition: background-color 0.22s cubic-bezier(0.25, 1, 0.5, 1),
         box-shadow 0.22s cubic-bezier(0.25, 1, 0.5, 1),
-        background-color 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+        transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .search-wrapper:focus-within {
-    border-color: var(--c-accent);
-    box-shadow: 0 0 0 3px var(--c-focus-ring);
+    background: var(--c-surface);
+    box-shadow: 0 0 0 3px var(--c-focus-ring), 0 10px 28px var(--c-shadow);
+    transform: scale(1.02);
 }
 
 .engine-selector,
@@ -449,7 +460,7 @@ body.loaded .launcher {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: 12px;
     color: var(--c-text-secondary);
     background: transparent;
     cursor: pointer;
@@ -468,8 +479,8 @@ body.loaded .launcher {
 
 .engine-selector:hover,
 .search-submit:hover {
-    color: var(--c-accent);
-    background: var(--c-accent-soft);
+    color: var(--c-text-primary);
+    background: var(--c-surface);
 }
 
 #engine-icon,
@@ -497,21 +508,35 @@ body.loaded .launcher {
     opacity: 0.82;
 }
 
-/* 快捷链接启动器：单一表面，位于搜索框正下方 */
+/* 快捷链接启动器：透明常驻，无容器表面，靠悬停底色与站点圆点建立层次 */
 .launcher {
     max-width: 640px;
     margin-top: 18px;
-    padding: 8px;
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: 8px;
 }
 
 .quick-links {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 6px;
+    transition: opacity 0.22s ease;
+}
+
+/* 搜索聚焦时启动器淡出，让搜索成为唯一主角；失焦回位 */
+.container.search-focused .quick-links {
+    opacity: 0.35;
+}
+
+/* 拖拽插入指示线 */
+.drag-indicator {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--c-accent);
+    pointer-events: none;
+    z-index: 5;
 }
 
 .quick-link {
@@ -596,7 +621,7 @@ body.loaded .launcher {
 }
 
 .add-link .quick-link-icon {
-    color: var(--c-accent);
+    color: var(--c-text-secondary);
     background: transparent;
     border-style: dashed;
 }
@@ -647,14 +672,6 @@ body.loaded .launcher {
     opacity: 0.38;
 }
 
-.quick-link.drag-over {
-    background: var(--c-accent-soft);
-}
-
-.quick-link.drag-over .quick-link-dot {
-    box-shadow: 0 0 0 3px var(--c-accent-soft);
-}
-
 .quick-link[draggable="true"] {
     cursor: grab;
 }
@@ -663,7 +680,7 @@ body.loaded .launcher {
     cursor: grabbing;
 }
 
-/* 对角角落控制：设置与主题开关，尺寸稳定、不抢搜索的主视觉 */
+/* 对角角落控制：扁平图标，无边框无阴影，hover 淡底；与透明启动器同语言 */
 .corner-btn,
 .theme-toggle {
     position: fixed;
@@ -675,12 +692,10 @@ body.loaded .launcher {
     align-items: center;
     justify-content: center;
     color: var(--c-text-secondary);
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: 8px;
-    box-shadow: 0 8px 22px var(--c-shadow);
+    background: transparent;
+    border-radius: 12px;
     cursor: pointer;
-    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+    transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 #settings-btn {
@@ -692,15 +707,11 @@ body.loaded .launcher {
 }
 
 .corner-btn:hover,
-.theme-toggle:hover {
-    color: var(--c-accent);
+.theme-toggle:hover,
+.corner-btn:focus-visible,
+.theme-toggle:focus-visible {
+    color: var(--c-text-primary);
     background: var(--c-accent-soft);
-    border-color: var(--c-accent);
-}
-
-.corner-btn:active,
-.theme-toggle:active {
-    background: var(--c-surface-muted);
 }
 
 .theme-icon {
@@ -1166,6 +1177,16 @@ textarea#import-json {
     line-height: 1.4;
 }
 
+.panel-section-label {
+    display: block;
+    margin: 20px 0 8px;
+    color: var(--c-text-primary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+}
+
 .btn:focus-visible,
 .close-btn:focus-visible,
 .corner-btn:focus-visible,
@@ -1181,7 +1202,7 @@ textarea#import-json {
 
 @media (max-width: 768px) {
     .container {
-        padding: calc(50vh - 171px) 20px 56px;
+        padding: calc(50vh - 175px) 20px 56px;
     }
 
     .time {
@@ -1228,7 +1249,7 @@ textarea#import-json {
 
 @media (max-width: 480px) {
     .container {
-        padding: calc(50vh - 145px) 16px 48px;
+        padding: calc(50vh - 147px) 16px 48px;
     }
 
     .time {
@@ -1237,7 +1258,7 @@ textarea#import-json {
 
     .date {
         margin-top: 10px;
-        font-size: 0.74rem;
+        font-size: 0.84rem;
     }
 
     .time-block {

@@ -175,16 +175,59 @@ const schemeManager = {
     }
 };
 
+// 时间格式：24 小时制（默认）或 12 小时制
+let hourFormat = '24';
+
+function loadHourFormat() {
+    try {
+        if (localStorage.getItem('hourFormat') === '12') {
+            hourFormat = '12';
+        }
+    } catch (e) {
+        console.error('Error loading hour format:', e);
+    }
+}
+
+// 设置时间格式并持久化（24 为默认，不落盘）
+function setHourFormat(format) {
+    hourFormat = format === '12' ? '12' : '24';
+    try {
+        if (hourFormat === '12') {
+            localStorage.setItem('hourFormat', '12');
+        } else {
+            localStorage.removeItem('hourFormat');
+        }
+    } catch (e) {
+        console.error('Error saving hour format:', e);
+    }
+    updateDateTime();
+    updateHourFormatControl();
+}
+
+// 同步外观面板的时间格式选中态
+function updateHourFormatControl() {
+    const radio = document.querySelector(`input[name="hour-format"][value="${hourFormat}"]`);
+    if (radio) {
+        radio.checked = true;
+    }
+}
+
 // 显示时间和日期
 function updateDateTime() {
     const now = new Date();
 
-    // 更新时间
-    const hours = String(now.getHours()).padStart(2, '0');
+    // 更新时间：24 小时制补零，12 小时制带 AM/PM
+    let hours = now.getHours();
+    let period = '';
+    if (hourFormat === '12') {
+        period = hours < 12 ? ' AM' : ' PM';
+        hours = hours % 12 || 12;
+    }
+    const hoursText = hourFormat === '12' ? String(hours) : String(hours).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timeEl = document.getElementById('time');
     // 使用可单独控制的冒号元素，便于动画
-    timeEl.innerHTML = `${hours}<span class="colon">:</span>${minutes}`;
+    timeEl.innerHTML = `${hoursText}<span class="colon">:</span>${minutes}${period}`;
 
     // 更新日期 - 紧凑大写英文格式，如 MONDAY · AUG 11
     const options = { weekday: 'long', month: 'short', day: 'numeric' };
@@ -193,6 +236,7 @@ function updateDateTime() {
 }
 
 // 每秒更新一次时间
+loadHourFormat();
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
@@ -204,14 +248,14 @@ const engineIcons = {
 
 // 搜索引擎配置
 const engines = [
-    { name: 'google', url: 'https://www.google.com/search?q=' },
-    { name: 'bing', url: 'https://www.bing.com/search?q=' }
+    { name: 'google', label: 'Google', url: 'https://www.google.com/search?q=' },
+    { name: 'bing', label: 'Bing', url: 'https://www.bing.com/search?q=' }
 ];
 
 // 当前搜索引擎索引
 let currentEngineIndex = 0;
 
-// 更新搜索引擎图标
+// 更新搜索引擎图标，并同步按钮的可读文本（title / aria-label）
 function updateEngineIcon() {
     const engineIcon = document.getElementById('engine-icon');
     const currentEngine = engines[currentEngineIndex];
@@ -222,6 +266,13 @@ function updateEngineIcon() {
     path.setAttribute('d', iconPath);
     path.setAttribute('fill', 'currentColor');
     engineIcon.appendChild(path);
+
+    const engineSelector = document.getElementById('engine-selector');
+    if (engineSelector) {
+        const label = `切换搜索引擎，当前为 ${currentEngine.label}`;
+        engineSelector.setAttribute('aria-label', label);
+        engineSelector.title = label;
+    }
 }
 
 // 切换搜索引擎
@@ -238,7 +289,7 @@ document.getElementById('search-form').addEventListener('submit', function (e) {
     performSearch();
 });
 
-// 根据单选切换，自定义 URL 输入框显示状态
+// 根据单选切换，自定义 URL 输入框显示状态 / 时间格式
 document.addEventListener('change', function (e) {
     if (e.target && e.target.name === 'icon-mode') {
         const customContainer = document.getElementById('custom-url-container');
@@ -249,6 +300,8 @@ document.addEventListener('change', function (e) {
                 customContainer.classList.remove('show');
             }
         }
+    } else if (e.target && e.target.name === 'hour-format') {
+        setHourFormat(e.target.value);
     }
 });
 
@@ -259,6 +312,22 @@ function performSearch() {
     if (searchInput.value.trim() !== '') {
         const searchUrl = currentEngine.url + encodeURIComponent(searchInput.value.trim());
         window.open(searchUrl, '_blank');
+    }
+}
+
+// 搜索框聚焦时，启动器淡出让搜索独处；失焦回位
+function setupSearchFocusBlur() {
+    const searchInput = document.getElementById('search-input');
+    const container = document.querySelector('.container');
+
+    if (searchInput && container) {
+        searchInput.addEventListener('focus', function () {
+            container.classList.add('search-focused');
+        });
+
+        searchInput.addEventListener('blur', function () {
+            container.classList.remove('search-focused');
+        });
     }
 }
 
@@ -493,102 +562,136 @@ function renderLinks(links) {
     setupDragAndDrop();
 }
 
-// 设置拖拽功能
+// 设置拖拽功能：插入语义（拖拽时在目标空隙显示插入线，松手后插入到该位置）
 function setupDragAndDrop() {
     const quickLinksContainer = document.getElementById('quick-links');
     let draggedElement = null;
     let draggedIndex = null;
 
-    // 为所有快捷链接添加拖拽事件监听器
-    const linkElements = quickLinksContainer.querySelectorAll('a.quick-link');
+    // 容器级监听器只绑定一次；重渲染清空容器后重新挂载指示线
+    if (setupDragAndDrop.initialized) {
+        if (setupDragAndDrop.indicator && !setupDragAndDrop.indicator.isConnected) {
+            quickLinksContainer.appendChild(setupDragAndDrop.indicator);
+        }
+        return;
+    }
+    setupDragAndDrop.initialized = true;
 
-    linkElements.forEach((linkElement, index) => {
-        // 拖拽开始
-        linkElement.addEventListener('dragstart', function (e) {
-            draggedElement = this;
-            draggedIndex = parseInt(this.dataset.index);
+    // 插入指示线（保存静态引用，重渲染后仍可重新挂载）
+    const indicator = document.createElement('div');
+    setupDragAndDrop.indicator = indicator;
+    indicator.className = 'drag-indicator';
+    indicator.style.display = 'none';
+    quickLinksContainer.appendChild(indicator);
 
-            // 设置拖拽效果
-            this.style.opacity = '0.5';
-            this.classList.add('dragging');
+    // 鼠标到链接左/右边缘的最近距离（换行布局下按角点距离计算）
+    function edgeDistance(clientX, clientY, edgeX, top, bottom) {
+        const dx = clientX - edgeX;
+        if (clientY < top) return Math.hypot(dx, clientY - top);
+        if (clientY > bottom) return Math.hypot(dx, clientY - bottom);
+        return Math.abs(dx);
+    }
 
-            // 设置拖拽数据
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.outerHTML);
-        });
+    // 计算插入位置：返回 0..links.length（links.length 表示末尾）
+    function getInsertIndex(clientX, clientY) {
+        const links = Array.from(quickLinksContainer.querySelectorAll('a.quick-link[data-index]'));
+        if (!links.length) return 0;
 
-        // 拖拽结束
-        linkElement.addEventListener('dragend', function (e) {
-            this.style.opacity = '';
-            this.classList.remove('dragging');
-
-            // 清理所有拖拽相关的样式
-            const allLinks = quickLinksContainer.querySelectorAll('a.quick-link');
-            allLinks.forEach(link => {
-                link.classList.remove('drag-over');
-            });
-
-            draggedElement = null;
-            draggedIndex = null;
-        });
-
-        // 拖拽进入
-        linkElement.addEventListener('dragenter', function (e) {
-            if (draggedElement && draggedElement !== this) {
-                e.preventDefault();
-                this.classList.add('drag-over');
+        let bestDistance = Infinity;
+        let bestIndex = 0;
+        links.forEach((link, index) => {
+            const rect = link.getBoundingClientRect();
+            const leftDistance = edgeDistance(clientX, clientY, rect.left, rect.top, rect.bottom);
+            const rightDistance = edgeDistance(clientX, clientY, rect.right, rect.top, rect.bottom);
+            if (leftDistance < bestDistance) {
+                bestDistance = leftDistance;
+                bestIndex = index;
+            }
+            if (rightDistance < bestDistance) {
+                bestDistance = rightDistance;
+                bestIndex = index + 1;
             }
         });
+        return bestIndex;
+    }
 
-        // 拖拽悬停
-        linkElement.addEventListener('dragover', function (e) {
-            if (draggedElement && draggedElement !== this) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            }
-        });
+    // 在插入位置显示指示线
+    function showIndicator(insertIndex) {
+        const links = Array.from(quickLinksContainer.querySelectorAll('a.quick-link[data-index]'));
+        if (!links.length) return;
 
-        // 拖拽离开
-        linkElement.addEventListener('dragleave', function (e) {
-            // 只有当鼠标真正离开元素时才移除样式
-            if (!this.contains(e.relatedTarget)) {
-                this.classList.remove('drag-over');
-            }
-        });
+        const edgeLink = insertIndex >= links.length ? links[links.length - 1] : links[insertIndex];
+        const edgeRect = edgeLink.getBoundingClientRect();
+        const containerRect = quickLinksContainer.getBoundingClientRect();
+        const x = insertIndex >= links.length ? edgeRect.right : edgeRect.left;
 
-        // 放置
-        linkElement.addEventListener('drop', function (e) {
-            if (draggedElement && draggedElement !== this) {
-                e.preventDefault();
+        indicator.style.display = 'block';
+        indicator.style.top = `${edgeRect.top - containerRect.top}px`;
+        indicator.style.height = `${edgeRect.height}px`;
+        indicator.style.left = `${x - containerRect.left - 1}px`;
+    }
 
-                const dropIndex = parseInt(this.dataset.index);
+    // 拖拽开始
+    quickLinksContainer.addEventListener('dragstart', function (e) {
+        const linkElement = e.target.closest('a.quick-link[data-index]');
+        if (!linkElement) return;
+        draggedElement = linkElement;
+        draggedIndex = parseInt(linkElement.dataset.index);
+        linkElement.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', linkElement.outerHTML);
+    });
 
-                // 交换位置
-                swapLinks(draggedIndex, dropIndex);
+    // 拖拽经过：实时计算插入位置并显示指示线
+    quickLinksContainer.addEventListener('dragover', function (e) {
+        if (draggedElement === null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        showIndicator(getInsertIndex(e.clientX, e.clientY));
+    });
 
-                this.classList.remove('drag-over');
-            }
-        });
+    // 拖离容器：隐藏指示线
+    quickLinksContainer.addEventListener('dragleave', function (e) {
+        if (!quickLinksContainer.contains(e.relatedTarget)) {
+            indicator.style.display = 'none';
+        }
+    });
+
+    // 放置：插入到目标位置
+    quickLinksContainer.addEventListener('drop', function (e) {
+        if (draggedElement === null) return;
+        e.preventDefault();
+        const insertIndex = getInsertIndex(e.clientX, e.clientY);
+        insertLink(draggedIndex, insertIndex);
+        indicator.style.display = 'none';
+    });
+
+    // 拖拽结束：清理状态
+    quickLinksContainer.addEventListener('dragend', function () {
+        indicator.style.display = 'none';
+        if (draggedElement) {
+            draggedElement.classList.remove('dragging');
+        }
+        draggedElement = null;
+        draggedIndex = null;
     });
 }
 
-// 交换链接位置
-function swapLinks(fromIndex, toIndex) {
+// 插入链接：把 fromIndex 的链接移动到 toIndex（后续条目依次后移）
+function insertLink(fromIndex, toIndex) {
     storage.get('quickLinks', function (data) {
         const links = (data.quickLinks || defaultLinks).slice();
+        if (fromIndex < 0 || fromIndex >= links.length) return;
 
-        // 交换数组中的元素
-        if (fromIndex >= 0 && fromIndex < links.length &&
-            toIndex >= 0 && toIndex < links.length &&
-            fromIndex !== toIndex) {
-
-            const temp = links[fromIndex];
-            links[fromIndex] = links[toIndex];
-            links[toIndex] = temp;
-
-            // 保存更新后的链接顺序
-            saveLinks(links);
+        const moved = links.splice(fromIndex, 1)[0];
+        let target = toIndex;
+        if (fromIndex < toIndex) {
+            // 移除后目标位置前移一位
+            target -= 1;
         }
+        target = Math.max(0, Math.min(target, links.length));
+        links.splice(target, 0, moved);
+        saveLinks(links);
     });
 }
 
@@ -778,6 +881,7 @@ function showAppearancePanel() {
     importSection.style.display = 'none';
     importMessage.style.display = 'none';
     schemeManager.updateSchemeRows();
+    updateHourFormatControl();
 }
 
 function showExportPanel() {
@@ -963,6 +1067,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 加载快速链接
     loadLinks();
+
+    // 搜索框聚焦时启动器淡出
+    setupSearchFocusBlur();
 
     // 设置按钮
     initSettings();
