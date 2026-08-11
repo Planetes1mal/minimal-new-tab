@@ -186,14 +186,17 @@ if (themeToggle) {
 minimal-new-tab/
 ├── manifest.json       # Extension config (Manifest V3)
 ├── newtab.html         # Main HTML page
-├── styles.css          # All styles (CSS variables + themes)
+├── styles.css          # All styles (CSS variables + color schemes)
 ├── script.js           # All JavaScript logic
 ├── icons/
 │   ├── *.svg          # Inline SVG icons
 │   └── png/           # Extension icons (16/48/128px)
-├── archive/           # Old versions (gitignored)
-├── .cursor/           # Cursor AI plans (gitignored)
-└── .opencode/         # Opencode skills (gitignored)
+├── CONTEXT.md          # Domain glossary (single context)
+├── docs/               # Local working docs — agents config, ADRs (gitignored)
+├── reference/          # Reference projects (gitignored)
+├── .scratch/           # Local issue tracker + specs (gitignored)
+├── archive/            # Old versions (gitignored)
+└── .zcode/             # Engineering skills (gitignored)
 ```
 
 ---
@@ -248,3 +251,20 @@ Current permissions: `storage`
 2. **Debug JavaScript**: Right-click → Inspect on new tab page
 3. **Check Storage**: Chrome DevTools → Application → Storage → Extension Storage
 4. **Clear State**: Click "Clear storage" in DevTools to reset extension data
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked as local Markdown under `.scratch/<feature>/`.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five canonical triage labels defined for the local tracker.
+See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo using root `CONTEXT.md` and `docs/adr/`.
+See `docs/agents/domain.md`.

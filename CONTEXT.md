@@ -2,6 +2,11 @@
 
 ## Glossary
 
+### 快捷链接 (quick link)
+启动器中的目的地条目：名称 + 网址 + 图标模式（极简生成/网站默认/指定 URL）。
+数据以 `quickLinks` 键存储（扩展环境为 `chrome.storage.sync`，测试环境回退
+localStorage），备份 JSON 格式为 `{version: 1, links: [...]}`。
+
 ### 配色方案 (color scheme)
 一组完整设计过的调色家族，覆盖全部 `--c-*` 颜色变量，并以**浅色/深色两个变体**成对提供。
 当前值：`forest`（森绿，默认）、`ocean`（碧蓝）、`amber`（琥珀）、`slate`（岩墨）。

@@ -1,11 +1,24 @@
 archive/
 archive/**
 
+reference/
+reference/**
+
+.scratch/
+.scratch/**
+
 .cursor/
 .cursor/**
+
+.codex/
+.codex/**
+
+.zcode/
+.zcode/**
 
 .opencode/
 .opencode/**
 
 .superpowers/
 .superpowers/**
+

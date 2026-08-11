@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "极简新标签页",
-    "version": "1.2",
-    "description": "一个极简的新标签页",
+    "version": "2.0",
+    "description": "一个极简的新标签页：大时钟、搜索、快捷链接启动器，支持四套配色方案、深浅主题与键盘快捷键。",
     "chrome_url_overrides": {
         "newtab": "newtab.html"
     },
