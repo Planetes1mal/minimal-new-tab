@@ -95,11 +95,39 @@
             <div class="modal-form">
                 <div class="form-group">
                     <label>快捷链接管理</label>
-                    <div class="modal-row settings-tabs" role="tablist" aria-label="快捷链接管理">
+                    <div class="modal-row settings-tabs" role="tablist" aria-label="设置面板">
+                        <button id="tab-appearance" class="btn btn-secondary settings-tab" role="tab"
+                            aria-selected="false">外观</button>
                         <button id="tab-export" class="btn btn-secondary settings-tab active" role="tab"
                             aria-selected="true">导出</button>
                         <button id="tab-import" class="btn btn-secondary settings-tab" role="tab"
                             aria-selected="false">导入</button>
+                    </div>
+                </div>
+                <div id="appearance-panel" class="settings-panel" style="display: none;" role="tabpanel">
+                    <p class="panel-hint">配色方案同时作用于浅色与深色模式，不影响快捷链接外观。</p>
+                    <div id="scheme-list" class="scheme-list" role="radiogroup" aria-label="配色方案">
+                        <button type="button" class="scheme-row" data-scheme="forest" role="radio"
+                            aria-checked="true">
+                            <span class="scheme-dot" aria-hidden="true"></span>
+                            <span class="scheme-name">森绿</span>
+                            <span class="scheme-badge">默认</span>
+                        </button>
+                        <button type="button" class="scheme-row" data-scheme="ocean" role="radio"
+                            aria-checked="false">
+                            <span class="scheme-dot" aria-hidden="true"></span>
+                            <span class="scheme-name">碧蓝</span>
+                        </button>
+                        <button type="button" class="scheme-row" data-scheme="amber" role="radio"
+                            aria-checked="false">
+                            <span class="scheme-dot" aria-hidden="true"></span>
+                            <span class="scheme-name">琥珀</span>
+                        </button>
+                        <button type="button" class="scheme-row" data-scheme="slate" role="radio"
+                            aria-checked="false">
+                            <span class="scheme-dot" aria-hidden="true"></span>
+                            <span class="scheme-name">岩墨</span>
+                        </button>
                     </div>
                 </div>
                 <div id="export-panel" class="settings-panel" role="tabpanel">

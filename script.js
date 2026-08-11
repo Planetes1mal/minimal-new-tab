@@ -82,6 +82,99 @@ const themeManager = {
     }
 };
 
+// 配色方案管理（与主题模式正交：方案决定色系，主题模式决定明暗变体）
+const schemeManager = {
+    // 当前方案；forest 为默认方案，不写 data-scheme 属性
+    currentScheme: 'forest',
+    SCHEMES: {
+        forest: '森绿',
+        ocean: '碧蓝',
+        amber: '琥珀',
+        slate: '岩墨'
+    },
+
+    init() {
+        this.loadScheme();
+        this.applyScheme();
+        this.setupSchemePicker();
+    },
+
+    // 加载保存的方案设置
+    loadScheme() {
+        try {
+            const savedScheme = localStorage.getItem('colorScheme');
+            if (savedScheme && this.SCHEMES[savedScheme]) {
+                this.currentScheme = savedScheme;
+            }
+        } catch (e) {
+            console.error('Error loading color scheme:', e);
+            this.currentScheme = 'forest';
+        }
+    },
+
+    // 保存方案设置（默认方案不落盘，保持存量用户存储不变）
+    saveScheme(scheme) {
+        try {
+            if (scheme === 'forest') {
+                localStorage.removeItem('colorScheme');
+            } else {
+                localStorage.setItem('colorScheme', scheme);
+            }
+        } catch (e) {
+            console.error('Error saving color scheme:', e);
+        }
+    },
+
+    // 应用方案：只有非默认方案需要 data-scheme 属性
+    applyScheme() {
+        if (this.currentScheme === 'forest') {
+            delete document.body.dataset.scheme;
+        } else {
+            document.body.dataset.scheme = this.currentScheme;
+        }
+    },
+
+    // 选择并应用方案
+    selectScheme(scheme) {
+        if (!this.SCHEMES[scheme] || scheme === this.currentScheme) {
+            return;
+        }
+        this.currentScheme = scheme;
+        this.saveScheme(scheme);
+        this.applyScheme();
+        this.updateSchemeRows();
+    },
+
+    // 同步外观面板的选中状态
+    updateSchemeRows() {
+        const rows = document.querySelectorAll('.scheme-row');
+        rows.forEach(row => {
+            row.setAttribute('aria-checked', String(row.dataset.scheme === this.currentScheme));
+        });
+    },
+
+    // 绑定外观面板的方案行：点击选择，方向键在行间移动并选择
+    setupSchemePicker() {
+        const schemeRows = document.querySelectorAll('.scheme-row');
+        schemeRows.forEach((row, index) => {
+            row.addEventListener('click', () => {
+                this.selectScheme(row.dataset.scheme);
+            });
+
+            row.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' ||
+                    e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const offset = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
+                    const nextIndex = (index + offset + schemeRows.length) % schemeRows.length;
+                    schemeRows[nextIndex].focus();
+                    this.selectScheme(schemeRows[nextIndex].dataset.scheme);
+                }
+            });
+        });
+    }
+};
+
 // 显示时间和日期
 function updateDateTime() {
     const now = new Date();
@@ -175,6 +268,60 @@ const defaultLinks = [
     { name: '知乎', url: 'https://zhihu.com' },
     { name: '哔哩哔哩', url: 'https://bilibili.com' }
 ];
+
+const SITE_COLOR_RULES = [
+    { domain: 'mail.google.com', color: '#ea4335' },
+    { domain: 'google.com', color: '#4285f4' },
+    { domain: 'weibo.com', color: '#e6162d' },
+    { domain: 'zhihu.com', color: '#056de8' },
+    { domain: 'bilibili.com', color: '#00aeec' },
+    { domain: 'douyin.com', color: '#fe2c55' },
+    { domain: 'tiktok.com', color: '#25f4ee' },
+    { domain: 'github.com', color: '#7d8590' },
+    { domain: 'chatgpt.com', color: '#10a37f' },
+    { domain: 'openai.com', color: '#10a37f' },
+    { domain: 'youtube.com', color: '#ff0033' },
+    { domain: 'reddit.com', color: '#ff4500' },
+    { domain: 'x.com', color: '#1d9bf0' },
+    { domain: 'twitter.com', color: '#1d9bf0' },
+    { domain: 'discord.com', color: '#5865f2' },
+    { domain: 'figma.com', color: '#f24e1e' },
+    { domain: 'notion.so', color: '#6f767d' },
+    { domain: 'stackoverflow.com', color: '#f48024' }
+];
+
+const FALLBACK_SITE_COLORS = [
+    '#4f7cff',
+    '#db4564',
+    '#16a085',
+    '#d9822b',
+    '#8b5cf6',
+    '#0f9fbf',
+    '#b65c24',
+    '#d23f9a'
+];
+
+// 已知站点使用品牌色，未知站点按域名生成稳定的识别色。
+function getSiteColor(linkUrl) {
+    try {
+        const hostname = new URL(linkUrl).hostname.replace(/^www\./, '').toLowerCase();
+        const matchedRule = SITE_COLOR_RULES.find(rule =>
+            hostname === rule.domain || hostname.endsWith(`.${rule.domain}`)
+        );
+
+        if (matchedRule) {
+            return matchedRule.color;
+        }
+
+        let hash = 0;
+        for (const character of hostname) {
+            hash = ((hash * 31) + character.charCodeAt(0)) >>> 0;
+        }
+        return FALLBACK_SITE_COLORS[hash % FALLBACK_SITE_COLORS.length];
+    } catch (e) {
+        return '#6f767d';
+    }
+}
 
 // 存储API兼容层
 const storage = {
@@ -295,37 +442,10 @@ function renderLinks(links) {
         linkElement.draggable = true;
         linkElement.dataset.index = index;
 
-        // 创建图标：优先 favicon 图片，失败回退到首字母
-        const iconElement = document.createElement('div');
-        iconElement.className = 'quick-link-icon';
-        if (link.icon && link.iconMode !== 'letter') {
-            const img = document.createElement('img');
-            img.src = link.icon;
-            img.alt = link.name;
-
-            // 设置加载超时（3秒）
-            const timeoutId = setTimeout(() => {
-                // 超时后回退为首字母
-                iconElement.innerHTML = '';
-                iconElement.textContent = link.name.charAt(0).toUpperCase();
-            }, 3000);
-
-            img.onload = function () {
-                // 加载成功，清除超时
-                clearTimeout(timeoutId);
-            };
-
-            img.onerror = function () {
-                // 图片加载失败时回退为首字母
-                clearTimeout(timeoutId);
-                iconElement.innerHTML = '';
-                iconElement.textContent = link.name.charAt(0).toUpperCase();
-            };
-
-            iconElement.appendChild(img);
-        } else {
-            iconElement.textContent = link.name.charAt(0).toUpperCase();
-        }
+        const siteDot = document.createElement('span');
+        siteDot.className = 'quick-link-dot';
+        siteDot.setAttribute('aria-hidden', 'true');
+        siteDot.style.setProperty('--c-site-color', getSiteColor(link.url));
 
         // 创建名称
         const nameElement = document.createElement('div');
@@ -357,7 +477,7 @@ function renderLinks(links) {
             }
         });
 
-        linkElement.appendChild(iconElement);
+        linkElement.appendChild(siteDot);
         linkElement.appendChild(nameElement);
         linkElement.appendChild(deleteElement);
         quickLinksContainer.appendChild(linkElement);
@@ -627,9 +747,11 @@ const settingsModal = document.getElementById('settings-modal');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
 const settingsTabs = {
+    appearance: document.getElementById('tab-appearance'),
     export: document.getElementById('tab-export'),
     import: document.getElementById('tab-import')
 };
+const appearancePanel = document.getElementById('appearance-panel');
 const exportPanel = document.getElementById('export-panel');
 const exportHint = document.getElementById('export-hint');
 const exportClipboardBtn = document.getElementById('export-clipboard-btn');
@@ -639,16 +761,28 @@ const importJson = document.getElementById('import-json');
 const importFile = document.getElementById('import-file');
 const importMessage = document.getElementById('import-message');
 
-// 切换设置面板：导出 / 导入
+// 切换设置面板：外观 / 导出 / 导入
 function setActiveTab(tabName) {
+    settingsTabs.appearance.classList.toggle('active', tabName === 'appearance');
     settingsTabs.export.classList.toggle('active', tabName === 'export');
     settingsTabs.import.classList.toggle('active', tabName === 'import');
+    settingsTabs.appearance.setAttribute('aria-selected', String(tabName === 'appearance'));
     settingsTabs.export.setAttribute('aria-selected', String(tabName === 'export'));
     settingsTabs.import.setAttribute('aria-selected', String(tabName === 'import'));
 }
 
+function showAppearancePanel() {
+    setActiveTab('appearance');
+    appearancePanel.style.display = 'block';
+    exportPanel.style.display = 'none';
+    importSection.style.display = 'none';
+    importMessage.style.display = 'none';
+    schemeManager.updateSchemeRows();
+}
+
 function showExportPanel() {
     setActiveTab('export');
+    appearancePanel.style.display = 'none';
     exportPanel.style.display = 'block';
     importSection.style.display = 'none';
     importMessage.style.display = 'none';
@@ -660,6 +794,7 @@ function showExportPanel() {
 
 function showImportPanel() {
     setActiveTab('import');
+    appearancePanel.style.display = 'none';
     exportPanel.style.display = 'none';
     importSection.style.display = 'block';
     importMessage.style.display = 'none';
@@ -681,8 +816,9 @@ function initSettings() {
         }
     });
 
-    // 导出 / 导入页签切换
-    const tabList = [settingsTabs.export, settingsTabs.import];
+    // 外观 / 导出 / 导入页签切换
+    const tabList = [settingsTabs.appearance, settingsTabs.export, settingsTabs.import];
+    settingsTabs.appearance.addEventListener('click', showAppearancePanel);
     settingsTabs.export.addEventListener('click', showExportPanel);
     settingsTabs.import.addEventListener('click', showImportPanel);
     tabList.forEach(function (tab, index) {
@@ -803,6 +939,9 @@ function showImportMessage(text, type) {
 document.addEventListener('DOMContentLoaded', function () {
     // 初始化主题管理器
     themeManager.init();
+
+    // 初始化配色方案管理器
+    schemeManager.init();
 
     // 加载保存的搜索引擎选择
     storage.get('searchEngine', function (data) {
