@@ -142,33 +142,41 @@ const schemeManager = {
         this.currentScheme = scheme;
         this.saveScheme(scheme);
         this.applyScheme();
-        this.updateSchemeRows();
+        this.updateSchemeCards();
     },
 
-    // 同步外观面板的选中状态
-    updateSchemeRows() {
-        const rows = document.querySelectorAll('.scheme-row');
-        rows.forEach(row => {
-            row.setAttribute('aria-checked', String(row.dataset.scheme === this.currentScheme));
+    // 同步外观区的方案卡选中态
+    updateSchemeCards() {
+        const cards = document.querySelectorAll('.scheme-card');
+        cards.forEach(card => {
+            card.setAttribute('aria-checked', String(card.dataset.scheme === this.currentScheme));
         });
     },
 
-    // 绑定外观面板的方案行：点击选择，方向键在行间移动并选择
+    // 绑定方案卡：点击选择，方向键在 2×2 卡阵中移动并选择
     setupSchemePicker() {
-        const schemeRows = document.querySelectorAll('.scheme-row');
-        schemeRows.forEach((row, index) => {
-            row.addEventListener('click', () => {
-                this.selectScheme(row.dataset.scheme);
+        const cards = document.querySelectorAll('.scheme-card');
+        cards.forEach((card, index) => {
+            card.addEventListener('click', () => {
+                this.selectScheme(card.dataset.scheme);
             });
 
-            row.addEventListener('keydown', (e) => {
-                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' ||
-                    e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            card.addEventListener('keydown', (e) => {
+                const cols = 2;
+                let nextIndex = null;
+                if (e.key === 'ArrowRight' && index % cols < cols - 1) {
+                    nextIndex = index + 1;
+                } else if (e.key === 'ArrowLeft' && index % cols > 0) {
+                    nextIndex = index - 1;
+                } else if (e.key === 'ArrowDown' && index + cols < cards.length) {
+                    nextIndex = index + cols;
+                } else if (e.key === 'ArrowUp' && index - cols >= 0) {
+                    nextIndex = index - cols;
+                }
+                if (nextIndex !== null) {
                     e.preventDefault();
-                    const offset = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
-                    const nextIndex = (index + offset + schemeRows.length) % schemeRows.length;
-                    schemeRows[nextIndex].focus();
-                    this.selectScheme(schemeRows[nextIndex].dataset.scheme);
+                    cards[nextIndex].focus();
+                    this.selectScheme(cards[nextIndex].dataset.scheme);
                 }
             });
         });
@@ -560,31 +568,122 @@ function renderLinks(links) {
 
     // 设置拖拽功能
     setupDragAndDrop();
+
+    // 同步设置页的链接列表
+    renderSettingsLinks(links);
 }
 
-// 设置拖拽功能：插入语义（拖拽时在目标空隙显示插入线，松手后插入到该位置）
-function setupDragAndDrop() {
-    const quickLinksContainer = document.getElementById('quick-links');
+// 设置页链接列表的行内图标
+const EDIT_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 20H8L19 9L15 5L4 16V20Z"></path><path d="M13.5 6.5L17.5 10.5"></path></svg>';
+const DELETE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 7H20M9 7V4H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16M14 11V16"></path></svg>';
+
+// 渲染设置页的快捷链接列表（与启动器同存储，双向同步）
+function renderSettingsLinks(links) {
+    const list = document.getElementById('settings-link-list');
+    if (!list) return;
+
+    // 无参调用时从存储加载
+    if (!links) {
+        storage.get('quickLinks', function (data) {
+            renderSettingsLinks(data.quickLinks || defaultLinks);
+        });
+        return;
+    }
+
+    list.innerHTML = '';
+
+    if (!links.length) {
+        const empty = document.createElement('p');
+        empty.className = 'settings-link-empty';
+        empty.textContent = '暂无快捷链接，点击上方按钮添加。';
+        list.appendChild(empty);
+        setupSettingsListDrag();
+        return;
+    }
+
+    links.forEach((link, index) => {
+        const row = document.createElement('div');
+        row.className = 'settings-link-row';
+        row.draggable = true;
+        row.dataset.index = index;
+        row.title = link.url;
+
+        const dot = document.createElement('span');
+        dot.className = 'settings-link-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        dot.style.setProperty('--c-site-color', getSiteColor(link.url));
+
+        const name = document.createElement('span');
+        name.className = 'settings-link-name';
+        name.textContent = link.name;
+
+        const url = document.createElement('span');
+        url.className = 'settings-link-url';
+        try {
+            url.textContent = new URL(link.url).hostname;
+        } catch (e) {
+            url.textContent = link.url;
+        }
+
+        const actions = document.createElement('span');
+        actions.className = 'settings-link-actions';
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'settings-link-action edit';
+        editButton.setAttribute('aria-label', `编辑 ${link.name}`);
+        editButton.innerHTML = EDIT_ICON_SVG;
+        editButton.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openLinkEditor('edit', index);
+        });
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'settings-link-action delete';
+        deleteButton.setAttribute('aria-label', `删除 ${link.name}`);
+        deleteButton.innerHTML = DELETE_ICON_SVG;
+        deleteButton.addEventListener('click', function (e) {
+            e.stopPropagation();
+            deleteLink(index);
+        });
+
+        actions.appendChild(editButton);
+        actions.appendChild(deleteButton);
+
+        row.appendChild(dot);
+        row.appendChild(name);
+        row.appendChild(url);
+        row.appendChild(actions);
+
+        // 点击行主体打开编辑弹窗
+        row.addEventListener('click', function () {
+            openLinkEditor('edit', index);
+        });
+
+        list.appendChild(row);
+    });
+
+    setupSettingsListDrag();
+}
+
+// 通用插入式拖拽：容器内的 [data-index] 子项可拖拽，拖拽时在目标空隙显示
+// 插入指示线，松手后回调 onDrop(fromIndex, toIndex)。容器清空重渲染后
+// 调用返回对象的 refresh() 重新挂载指示线。
+function createInsertionDrag(container, onDrop) {
+    const indicator = document.createElement('div');
+    indicator.className = 'drag-indicator';
+    indicator.style.display = 'none';
+    container.appendChild(indicator);
+
     let draggedElement = null;
     let draggedIndex = null;
 
-    // 容器级监听器只绑定一次；重渲染清空容器后重新挂载指示线
-    if (setupDragAndDrop.initialized) {
-        if (setupDragAndDrop.indicator && !setupDragAndDrop.indicator.isConnected) {
-            quickLinksContainer.appendChild(setupDragAndDrop.indicator);
-        }
-        return;
-    }
-    setupDragAndDrop.initialized = true;
-
-    // 插入指示线（保存静态引用，重渲染后仍可重新挂载）
-    const indicator = document.createElement('div');
-    setupDragAndDrop.indicator = indicator;
-    indicator.className = 'drag-indicator';
-    indicator.style.display = 'none';
-    quickLinksContainer.appendChild(indicator);
-
-    // 鼠标到链接左/右边缘的最近距离（换行布局下按角点距离计算）
+    // 鼠标到子项左/右边缘的最近距离（换行布局下按角点距离计算）
     function edgeDistance(clientX, clientY, edgeX, top, bottom) {
         const dx = clientX - edgeX;
         if (clientY < top) return Math.hypot(dx, clientY - top);
@@ -592,15 +691,15 @@ function setupDragAndDrop() {
         return Math.abs(dx);
     }
 
-    // 计算插入位置：返回 0..links.length（links.length 表示末尾）
+    // 计算插入位置：返回 0..items.length（items.length 表示末尾）
     function getInsertIndex(clientX, clientY) {
-        const links = Array.from(quickLinksContainer.querySelectorAll('a.quick-link[data-index]'));
-        if (!links.length) return 0;
+        const items = Array.from(container.querySelectorAll('[data-index]'));
+        if (!items.length) return 0;
 
         let bestDistance = Infinity;
         let bestIndex = 0;
-        links.forEach((link, index) => {
-            const rect = link.getBoundingClientRect();
+        items.forEach((item, index) => {
+            const rect = item.getBoundingClientRect();
             const leftDistance = edgeDistance(clientX, clientY, rect.left, rect.top, rect.bottom);
             const rightDistance = edgeDistance(clientX, clientY, rect.right, rect.top, rect.bottom);
             if (leftDistance < bestDistance) {
@@ -617,13 +716,13 @@ function setupDragAndDrop() {
 
     // 在插入位置显示指示线
     function showIndicator(insertIndex) {
-        const links = Array.from(quickLinksContainer.querySelectorAll('a.quick-link[data-index]'));
-        if (!links.length) return;
+        const items = Array.from(container.querySelectorAll('[data-index]'));
+        if (!items.length) return;
 
-        const edgeLink = insertIndex >= links.length ? links[links.length - 1] : links[insertIndex];
-        const edgeRect = edgeLink.getBoundingClientRect();
-        const containerRect = quickLinksContainer.getBoundingClientRect();
-        const x = insertIndex >= links.length ? edgeRect.right : edgeRect.left;
+        const edgeItem = insertIndex >= items.length ? items[items.length - 1] : items[insertIndex];
+        const edgeRect = edgeItem.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const x = insertIndex >= items.length ? edgeRect.right : edgeRect.left;
 
         indicator.style.display = 'block';
         indicator.style.top = `${edgeRect.top - containerRect.top}px`;
@@ -631,43 +730,38 @@ function setupDragAndDrop() {
         indicator.style.left = `${x - containerRect.left - 1}px`;
     }
 
-    // 拖拽开始
-    quickLinksContainer.addEventListener('dragstart', function (e) {
-        const linkElement = e.target.closest('a.quick-link[data-index]');
-        if (!linkElement) return;
-        draggedElement = linkElement;
-        draggedIndex = parseInt(linkElement.dataset.index);
-        linkElement.classList.add('dragging');
+    container.addEventListener('dragstart', function (e) {
+        const item = e.target.closest('[data-index]');
+        if (!item) return;
+        draggedElement = item;
+        draggedIndex = parseInt(item.dataset.index);
+        item.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', linkElement.outerHTML);
+        e.dataTransfer.setData('text/html', item.outerHTML);
     });
 
-    // 拖拽经过：实时计算插入位置并显示指示线
-    quickLinksContainer.addEventListener('dragover', function (e) {
+    container.addEventListener('dragover', function (e) {
         if (draggedElement === null) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         showIndicator(getInsertIndex(e.clientX, e.clientY));
     });
 
-    // 拖离容器：隐藏指示线
-    quickLinksContainer.addEventListener('dragleave', function (e) {
-        if (!quickLinksContainer.contains(e.relatedTarget)) {
+    container.addEventListener('dragleave', function (e) {
+        if (!container.contains(e.relatedTarget)) {
             indicator.style.display = 'none';
         }
     });
 
-    // 放置：插入到目标位置
-    quickLinksContainer.addEventListener('drop', function (e) {
+    container.addEventListener('drop', function (e) {
         if (draggedElement === null) return;
         e.preventDefault();
         const insertIndex = getInsertIndex(e.clientX, e.clientY);
-        insertLink(draggedIndex, insertIndex);
+        onDrop(draggedIndex, insertIndex);
         indicator.style.display = 'none';
     });
 
-    // 拖拽结束：清理状态
-    quickLinksContainer.addEventListener('dragend', function () {
+    container.addEventListener('dragend', function () {
         indicator.style.display = 'none';
         if (draggedElement) {
             draggedElement.classList.remove('dragging');
@@ -675,6 +769,36 @@ function setupDragAndDrop() {
         draggedElement = null;
         draggedIndex = null;
     });
+
+    return {
+        refresh() {
+            if (!indicator.isConnected) {
+                container.appendChild(indicator);
+            }
+        }
+    };
+}
+
+// 启动器拖拽（插入语义，存储层复用 insertLink）
+let launcherDrag = null;
+
+function setupDragAndDrop() {
+    if (launcherDrag) {
+        launcherDrag.refresh();
+        return;
+    }
+    launcherDrag = createInsertionDrag(document.getElementById('quick-links'), insertLink);
+}
+
+// 设置页快捷链接列表拖拽（与启动器同一存储层）
+let settingsListDrag = null;
+
+function setupSettingsListDrag() {
+    if (settingsListDrag) {
+        settingsListDrag.refresh();
+        return;
+    }
+    settingsListDrag = createInsertionDrag(document.getElementById('settings-link-list'), insertLink);
 }
 
 // 插入链接：把 fromIndex 的链接移动到 toIndex（后续条目依次后移）
@@ -738,57 +862,55 @@ function handleSaveLink() {
     }
 }
 
-// 右键编辑：打开弹窗并写回
+// 右键编辑：打开编辑弹窗（edit 模式）
 function attachContextMenu(links) {
     const quickLinksContainer = document.getElementById('quick-links');
     const linkNodes = quickLinksContainer.querySelectorAll('a.quick-link');
     linkNodes.forEach((node, idx) => {
         node.addEventListener('contextmenu', function (e) {
             e.preventDefault();
-            storage.get('quickLinks', function (data) {
-                let all = data.quickLinks || defaultLinks;
-                const current = all[idx];
-
-                modal.dataset.mode = 'edit';
-                modal.dataset.editingIndex = idx;
-                modal.style.display = 'block';
-                document.getElementById('link-name').value = current.name || '';
-                document.getElementById('link-url').value = current.url || '';
-                const mode = current.iconMode || (current.icon ? 'favicon' : 'letter');
-                if (mode === 'letter') {
-                    document.getElementById('icon-letter').checked = true;
-                } else if (mode === 'custom') {
-                    document.getElementById('icon-custom').checked = true;
-                } else {
-                    document.getElementById('icon-favicon').checked = true;
-                }
-                const customContainer = document.getElementById('custom-url-container');
-                const customInput = document.getElementById('icon-custom-url');
-                if (customContainer && customInput) {
-                    if (mode === 'custom') {
-                        customContainer.classList.add('show');
-                        customInput.value = current.icon || '';
-                    } else {
-                        customContainer.classList.remove('show');
-                        customInput.value = '';
-                    }
-                }
-            });
+            openLinkEditor('edit', idx);
         });
     });
 }
 
-// 添加链接模态框
-const modal = document.getElementById('add-link-modal');
-modal.dataset.mode = 'add';
-const addLinkButton = document.getElementById('add-link-button');
-const closeButton = modal.querySelector('.close-btn');
-const cancelButton = document.getElementById('cancel-link');
-const saveLinkButton = document.getElementById('save-link');
+// 打开链接编辑弹窗：mode = 'add' 新增 / 'edit' 编辑（填充现有值）
+function openLinkEditor(mode, index) {
+    if (mode === 'edit') {
+        storage.get('quickLinks', function (data) {
+            const links = data.quickLinks || defaultLinks;
+            const current = links[index];
+            if (!current) return;
 
-// 打开模态框（新增模式）
-addLinkButton.onclick = function (e) {
-    e.preventDefault();
+            modal.dataset.mode = 'edit';
+            modal.dataset.editingIndex = index;
+            modal.style.display = 'block';
+            document.getElementById('link-name').value = current.name || '';
+            document.getElementById('link-url').value = current.url || '';
+            const iconMode = current.iconMode || (current.icon ? 'favicon' : 'letter');
+            if (iconMode === 'letter') {
+                document.getElementById('icon-letter').checked = true;
+            } else if (iconMode === 'custom') {
+                document.getElementById('icon-custom').checked = true;
+            } else {
+                document.getElementById('icon-favicon').checked = true;
+            }
+            const customContainer = document.getElementById('custom-url-container');
+            const customInput = document.getElementById('icon-custom-url');
+            if (customContainer && customInput) {
+                if (iconMode === 'custom') {
+                    customContainer.classList.add('show');
+                    customInput.value = current.icon || '';
+                } else {
+                    customContainer.classList.remove('show');
+                    customInput.value = '';
+                }
+            }
+        });
+        return;
+    }
+
+    // 新增模式
     modal.dataset.mode = 'add';
     delete modal.dataset.editingIndex;
     modal.style.display = 'block';
@@ -805,6 +927,20 @@ addLinkButton.onclick = function (e) {
     if (customInput) {
         customInput.value = '';
     }
+}
+
+// 添加链接模态框
+const modal = document.getElementById('add-link-modal');
+modal.dataset.mode = 'add';
+const addLinkButton = document.getElementById('add-link-button');
+const closeButton = modal.querySelector('.close-btn');
+const cancelButton = document.getElementById('cancel-link');
+const saveLinkButton = document.getElementById('save-link');
+
+// 打开模态框（新增模式）
+addLinkButton.onclick = function (e) {
+    e.preventDefault();
+    openLinkEditor('add');
 };
 
 addLinkButton.addEventListener('keydown', function (e) {
@@ -849,12 +985,18 @@ saveLinkButton.onclick = handleSaveLink;
 const settingsModal = document.getElementById('settings-modal');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
-const settingsTabs = {
-    appearance: document.getElementById('tab-appearance'),
-    export: document.getElementById('tab-export'),
-    import: document.getElementById('tab-import')
+const settingsNavItems = {
+    appearance: document.getElementById('nav-appearance'),
+    links: document.getElementById('nav-links'),
+    backup: document.getElementById('nav-backup'),
+    about: document.getElementById('nav-about')
 };
-const appearancePanel = document.getElementById('appearance-panel');
+const settingsSections = {
+    appearance: document.getElementById('appearance-section'),
+    links: document.getElementById('links-section'),
+    backup: document.getElementById('backup-section'),
+    about: document.getElementById('about-section')
+};
 const exportPanel = document.getElementById('export-panel');
 const exportHint = document.getElementById('export-hint');
 const exportClipboardBtn = document.getElementById('export-clipboard-btn');
@@ -864,52 +1006,34 @@ const importJson = document.getElementById('import-json');
 const importFile = document.getElementById('import-file');
 const importMessage = document.getElementById('import-message');
 
-// 切换设置面板：外观 / 导出 / 导入
-function setActiveTab(tabName) {
-    settingsTabs.appearance.classList.toggle('active', tabName === 'appearance');
-    settingsTabs.export.classList.toggle('active', tabName === 'export');
-    settingsTabs.import.classList.toggle('active', tabName === 'import');
-    settingsTabs.appearance.setAttribute('aria-selected', String(tabName === 'appearance'));
-    settingsTabs.export.setAttribute('aria-selected', String(tabName === 'export'));
-    settingsTabs.import.setAttribute('aria-selected', String(tabName === 'import'));
-}
-
-function showAppearancePanel() {
-    setActiveTab('appearance');
-    appearancePanel.style.display = 'block';
-    exportPanel.style.display = 'none';
-    importSection.style.display = 'none';
-    importMessage.style.display = 'none';
-    schemeManager.updateSchemeRows();
-    updateHourFormatControl();
-}
-
-function showExportPanel() {
-    setActiveTab('export');
-    appearancePanel.style.display = 'none';
-    exportPanel.style.display = 'block';
-    importSection.style.display = 'none';
-    importMessage.style.display = 'none';
-    storage.get('quickLinks', function (data) {
-        const count = (data.quickLinks || defaultLinks).length;
-        exportHint.textContent = `将 ${count} 个快捷链接导出为 JSON`;
+// 切换设置分区：外观 / 快捷链接 / 备份 / 关于
+function showSettingsSection(sectionName) {
+    Object.keys(settingsNavItems).forEach(key => {
+        const active = key === sectionName;
+        settingsNavItems[key].classList.toggle('active', active);
+        settingsNavItems[key].setAttribute('aria-selected', String(active));
+        settingsSections[key].hidden = !active;
     });
-}
 
-function showImportPanel() {
-    setActiveTab('import');
-    appearancePanel.style.display = 'none';
-    exportPanel.style.display = 'none';
-    importSection.style.display = 'block';
-    importMessage.style.display = 'none';
-    importJson.value = '';
+    if (sectionName === 'appearance') {
+        schemeManager.updateSchemeCards();
+        updateHourFormatControl();
+    } else if (sectionName === 'links') {
+        renderSettingsLinks();
+    } else if (sectionName === 'backup') {
+        storage.get('quickLinks', function (data) {
+            const count = (data.quickLinks || defaultLinks).length;
+            exportHint.textContent = `将 ${count} 个快捷链接导出为 JSON`;
+        });
+        importMessage.style.display = 'none';
+    }
 }
 
 function initSettings() {
-    // 打开设置弹窗，默认停留在导出页
+    // 打开设置弹窗，默认停留在外观分区
     settingsBtn.addEventListener('click', function () {
         settingsModal.style.display = 'block';
-        showExportPanel();
+        showSettingsSection('appearance');
     });
 
     // 关闭设置弹窗
@@ -920,18 +1044,19 @@ function initSettings() {
         }
     });
 
-    // 外观 / 导出 / 导入页签切换
-    const tabList = [settingsTabs.appearance, settingsTabs.export, settingsTabs.import];
-    settingsTabs.appearance.addEventListener('click', showAppearancePanel);
-    settingsTabs.export.addEventListener('click', showExportPanel);
-    settingsTabs.import.addEventListener('click', showImportPanel);
-    tabList.forEach(function (tab, index) {
-        tab.addEventListener('keydown', function (e) {
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    // 分区切换（点击 + 方向键）
+    const navList = Object.values(settingsNavItems);
+    navList.forEach(function (item, index) {
+        item.addEventListener('click', function () {
+            showSettingsSection(item.id.replace('nav-', ''));
+        });
+        item.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                 e.preventDefault();
-                const offset = e.key === 'ArrowRight' ? 1 : -1;
-                const next = (index + offset + tabList.length) % tabList.length;
-                tabList[next].click();
+                const offset = e.key === 'ArrowDown' ? 1 : -1;
+                const nextIndex = (index + offset + navList.length) % navList.length;
+                navList[nextIndex].focus();
+                showSettingsSection(navList[nextIndex].id.replace('nav-', ''));
             }
         });
     });
@@ -939,6 +1064,14 @@ function initSettings() {
     // 导出：复制到剪贴板 / 下载文件
     exportClipboardBtn.addEventListener('click', exportToClipboard);
     exportFileBtn.addEventListener('click', exportToFile);
+
+    // 设置页快捷链接列表的添加入口
+    const settingsAddLink = document.getElementById('settings-add-link');
+    if (settingsAddLink) {
+        settingsAddLink.addEventListener('click', function () {
+            openLinkEditor('add');
+        });
+    }
 
     // 文件导入
     importFile.addEventListener('change', function (e) {
@@ -971,6 +1104,35 @@ function initSettings() {
             }
         }
     });
+}
+
+// 关于区：读取扩展版本号（扩展环境用 chrome.runtime，HTTP 测试环境回退 manifest.json）
+function loadAboutVersion() {
+    const versionEl = document.getElementById('about-version');
+    if (!versionEl) return;
+
+    try {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+            const manifest = chrome.runtime.getManifest();
+            if (manifest && manifest.version) {
+                versionEl.textContent = `v${manifest.version}`;
+                return;
+            }
+        }
+    } catch (e) {
+        // 忽略，走回退路径
+    }
+
+    fetch('manifest.json')
+        .then(function (response) { return response.json(); })
+        .then(function (manifest) {
+            if (manifest && manifest.version) {
+                versionEl.textContent = `v${manifest.version}`;
+            }
+        })
+        .catch(function () {
+            versionEl.textContent = '';
+        });
 }
 
 function closeSettingsModal() {
@@ -1073,6 +1235,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 设置按钮
     initSettings();
+
+    // 关于区的版本号
+    loadAboutVersion();
 
     // 页面加载动画
     requestAnimationFrame(() => {

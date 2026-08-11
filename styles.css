@@ -877,8 +877,7 @@ textarea#import-json:focus {
     box-shadow: 0 0 0 3px var(--c-focus-ring);
 }
 
-.segmented-control,
-.settings-tabs {
+.segmented-control {
     display: grid;
     gap: 3px;
     padding: 3px;
@@ -888,10 +887,6 @@ textarea#import-json:focus {
 }
 
 .segmented-control {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.settings-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -1023,14 +1018,7 @@ textarea#import-json:focus {
     background: var(--c-bg);
 }
 
-.settings-tab.active {
-    color: var(--c-accent-strong);
-    background: var(--c-surface);
-    border-color: transparent;
-}
-
-textarea#import-json {
-    min-height: 104px;
+textarea#import-json {    min-height: 104px;
     resize: vertical;
     font-family: var(--font-display);
     line-height: 1.5;
@@ -1102,83 +1090,91 @@ textarea#import-json {
     border-left-color: var(--c-danger);
 }
 
-/* 外观面板：配色方案选择 */
-.scheme-list {
-    display: grid;
-    gap: 6px;
+/* 设置弹窗：左侧导航 + 右侧内容 */
+.settings-shell {
+    max-width: 760px;
 }
 
-.scheme-row {
-    min-height: 40px;
-    padding: 0 12px;
+.settings-body {
+    display: flex;
+    min-height: 380px;
+}
+
+.settings-nav {
+    flex: 0 0 148px;
+    padding: 14px 10px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-right: 1px solid var(--c-border);
+}
+
+.settings-nav-item {
+    position: relative;
+    min-height: 36px;
+    padding: 0 12px 0 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
     color: var(--c-text-secondary);
-    background: var(--c-bg);
-    border: 1px solid var(--c-border);
-    border-radius: 6px;
+    background: transparent;
+    border-radius: 8px;
     font-size: 0.84rem;
     font-weight: 600;
-    line-height: 1.2;
     text-align: left;
     cursor: pointer;
-    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    transition: color 0.18s ease, background-color 0.18s ease;
 }
 
-.scheme-row:hover,
-.scheme-row[aria-checked="true"] {
+.settings-nav-item::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    width: 3px;
+    height: 0;
+    border-radius: 2px;
+    background: var(--c-accent);
+    transform: translateY(-50%);
+    transition: height 0.18s ease;
+}
+
+.settings-nav-item:hover {
     color: var(--c-text-primary);
-    background: var(--c-surface);
-}
-
-.scheme-row[aria-checked="true"] {
-    border-color: var(--c-accent);
-}
-
-.scheme-dot {
-    width: 12px;
-    height: 12px;
-    flex: 0 0 12px;
-    border-radius: 50%;
-    background: var(--c-accent);
-}
-
-/* 未选中行显示方案自身的中间色预览；选中行使用当前生效的强调色 */
-.scheme-row[data-scheme="forest"] .scheme-dot {
-    background: #4d8f76;
-}
-
-.scheme-row[data-scheme="ocean"] .scheme-dot {
-    background: #4d8ac4;
-}
-
-.scheme-row[data-scheme="amber"] .scheme-dot {
-    background: #c07c3a;
-}
-
-.scheme-row[data-scheme="slate"] .scheme-dot {
-    background: #6f6f7a;
-}
-
-.scheme-row[aria-checked="true"] .scheme-dot {
-    background: var(--c-accent);
-    box-shadow: 0 0 0 3px var(--c-accent-soft);
-}
-
-.scheme-badge {
-    margin-left: auto;
-    padding: 2px 8px;
-    color: var(--c-text-secondary);
     background: var(--c-surface-muted);
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    line-height: 1.4;
 }
 
-.panel-section-label {
-    display: block;
+.settings-nav-item.active {
+    color: var(--c-text-primary);
+    background: var(--c-accent-soft);
+}
+
+.settings-nav-item.active::before {
+    height: 16px;
+}
+
+.settings-content {
+    flex: 1;
+    min-width: 0;
+    padding: 18px 20px 22px;
+    overflow-y: auto;
+}
+
+.settings-section-title {
+    color: var(--c-text-primary);
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: 0;
+}
+
+.settings-section-desc {
+    margin: 6px 0 16px;
+    color: var(--c-text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.settings-sub-title {
     margin: 20px 0 8px;
     color: var(--c-text-primary);
     font-size: 0.82rem;
@@ -1187,13 +1183,295 @@ textarea#import-json {
     letter-spacing: 0;
 }
 
+.settings-field-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--c-text-primary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+}
+
+/* 配色方案：明暗双色板预览卡 */
+.scheme-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.scheme-card {
+    position: relative;
+    min-width: 0;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 6px;
+    color: var(--c-text-primary);
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.scheme-card:hover {
+    background: var(--c-surface);
+}
+
+.scheme-card[aria-checked="true"] {
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 3px var(--c-focus-ring);
+}
+
+.scheme-swatches {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.swatch-row {
+    display: flex;
+    gap: 3px;
+}
+
+.swatch-row i {
+    flex: 1;
+    height: 10px;
+    border-radius: 3px;
+}
+
+/* 各方案的明/暗双色板小样（设计令牌的固定展示值） */
+.scheme-card[data-scheme="forest"] .swatch-light i:nth-child(1) { background: #f3f5f2; }
+.scheme-card[data-scheme="forest"] .swatch-light i:nth-child(2) { background: #fbfcfa; }
+.scheme-card[data-scheme="forest"] .swatch-light i:nth-child(3) { background: #2f6b57; }
+.scheme-card[data-scheme="forest"] .swatch-dark i:nth-child(1) { background: #101311; }
+.scheme-card[data-scheme="forest"] .swatch-dark i:nth-child(2) { background: #191d1a; }
+.scheme-card[data-scheme="forest"] .swatch-dark i:nth-child(3) { background: #74b99b; }
+
+.scheme-card[data-scheme="ocean"] .swatch-light i:nth-child(1) { background: #eef3f7; }
+.scheme-card[data-scheme="ocean"] .swatch-light i:nth-child(2) { background: #f8fbfd; }
+.scheme-card[data-scheme="ocean"] .swatch-light i:nth-child(3) { background: #2563a8; }
+.scheme-card[data-scheme="ocean"] .swatch-dark i:nth-child(1) { background: #0e141b; }
+.scheme-card[data-scheme="ocean"] .swatch-dark i:nth-child(2) { background: #16202a; }
+.scheme-card[data-scheme="ocean"] .swatch-dark i:nth-child(3) { background: #6fb1e6; }
+
+.scheme-card[data-scheme="amber"] .swatch-light i:nth-child(1) { background: #f6f1e8; }
+.scheme-card[data-scheme="amber"] .swatch-light i:nth-child(2) { background: #fdfaf4; }
+.scheme-card[data-scheme="amber"] .swatch-light i:nth-child(3) { background: #a3601f; }
+.scheme-card[data-scheme="amber"] .swatch-dark i:nth-child(1) { background: #171209; }
+.scheme-card[data-scheme="amber"] .swatch-dark i:nth-child(2) { background: #201a10; }
+.scheme-card[data-scheme="amber"] .swatch-dark i:nth-child(3) { background: #dd9a54; }
+
+.scheme-card[data-scheme="slate"] .swatch-light i:nth-child(1) { background: #f2f2f4; }
+.scheme-card[data-scheme="slate"] .swatch-light i:nth-child(2) { background: #fafafb; }
+.scheme-card[data-scheme="slate"] .swatch-light i:nth-child(3) { background: #3d3d46; }
+.scheme-card[data-scheme="slate"] .swatch-dark i:nth-child(1) { background: #101012; }
+.scheme-card[data-scheme="slate"] .swatch-dark i:nth-child(2) { background: #18181c; }
+.scheme-card[data-scheme="slate"] .swatch-dark i:nth-child(3) { background: #a6a6b2; }
+
+.scheme-badge {
+    padding: 1px 7px;
+    color: var(--c-text-secondary);
+    background: var(--c-surface-muted);
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.scheme-check {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 18px;
+    height: 18px;
+    padding: 3px;
+    color: var(--c-surface);
+    background: var(--c-accent);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.scheme-card[aria-checked="true"] .scheme-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.scheme-check path {
+    stroke-width: 2.4;
+}
+
+/* 快捷链接列表 */
+.settings-add-link {
+    margin-bottom: 12px;
+}
+
+.settings-link-list {
+    display: grid;
+    gap: 6px;
+}
+
+.settings-link-row {
+    position: relative;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--c-text-primary);
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    cursor: grab;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.settings-link-row:hover {
+    background: var(--c-surface);
+    border-color: var(--c-accent);
+}
+
+.settings-link-row.dragging {
+    opacity: 0.38;
+}
+
+.settings-link-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    background: var(--c-site-color, var(--c-accent));
+    border-radius: 50%;
+}
+
+.settings-link-name {
+    flex: 0 1 auto;
+    overflow: hidden;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-link-url {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--c-text-secondary);
+    font-size: 0.76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-link-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 4px;
+}
+
+.settings-link-action {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-text-secondary);
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.settings-link-action:hover {
+    color: var(--c-text-primary);
+    background: var(--c-surface-muted);
+}
+
+.settings-link-action.edit:hover {
+    color: var(--c-accent-strong);
+    background: var(--c-accent-soft);
+}
+
+.settings-link-action.delete:hover {
+    color: var(--c-danger);
+    background: var(--c-danger-soft);
+}
+
+.settings-link-action svg {
+    width: 14px;
+    height: 14px;
+}
+
+.settings-link-empty {
+    padding: 26px 12px;
+    color: var(--c-text-secondary);
+    font-size: 0.8rem;
+    text-align: center;
+    border: 1px dashed var(--c-border);
+    border-radius: 8px;
+}
+
+/* 关于区 */
+.about-card {
+    padding: 16px;
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+}
+
+.about-name {
+    color: var(--c-text-primary);
+    font-size: 0.92rem;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.about-version {
+    color: var(--c-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.about-license {
+    margin-top: 6px;
+    color: var(--c-text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.about-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--c-accent-strong);
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.about-link:hover,
+.about-link:focus-visible {
+    text-decoration: underline;
+    outline: 0;
+}
+
 .btn:focus-visible,
 .close-btn:focus-visible,
 .corner-btn:focus-visible,
 .theme-toggle:focus-visible,
 .engine-selector:focus-visible,
 .delete-link:focus-visible,
-.scheme-row:focus-visible,
+.settings-nav-item:focus-visible,
+.scheme-card:focus-visible,
+.settings-link-action:focus-visible,
 .segment-option:focus-within .segment-label,
 .import-file-btn:focus-visible {
     outline: 2px solid var(--c-accent);
@@ -1203,6 +1481,42 @@ textarea#import-json {
 @media (max-width: 768px) {
     .container {
         padding: calc(50vh - 175px) 20px 56px;
+    }
+
+    /* 窄屏设置弹窗：导航折为顶部横向 chip 行 */
+    .settings-shell {
+        max-width: calc(100% - 32px);
+    }
+
+    .settings-body {
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .settings-nav {
+        flex: none;
+        flex-direction: row;
+        padding: 10px 12px;
+        gap: 4px;
+        border-right: 0;
+        border-bottom: 1px solid var(--c-border);
+        overflow-x: auto;
+    }
+
+    .settings-nav-item {
+        flex: 1 0 auto;
+        min-height: 32px;
+        padding: 0 12px;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .settings-nav-item::before {
+        display: none;
+    }
+
+    .settings-content {
+        padding: 16px;
     }
 
     .time {

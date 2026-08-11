@@ -83,7 +83,7 @@
 
     <!-- 设置弹窗 -->
     <div id="settings-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content settings-shell">
             <div class="modal-header">
                 <h2>设置</h2>
                 <button class="close-btn" id="settings-close-btn" aria-label="关闭">
@@ -92,70 +92,122 @@
                     </svg>
                 </button>
             </div>
-            <div class="modal-form">
-                <div class="form-group">
-                    <label>快捷链接管理</label>
-                    <div class="modal-row settings-tabs" role="tablist" aria-label="设置面板">
-                        <button id="tab-appearance" class="btn btn-secondary settings-tab" role="tab"
-                            aria-selected="false">外观</button>
-                        <button id="tab-export" class="btn btn-secondary settings-tab active" role="tab"
-                            aria-selected="true">导出</button>
-                        <button id="tab-import" class="btn btn-secondary settings-tab" role="tab"
-                            aria-selected="false">导入</button>
-                    </div>
+            <div class="settings-body">
+                <nav class="settings-nav" role="tablist" aria-label="设置分区">
+                    <button id="nav-appearance" class="settings-nav-item active" role="tab"
+                        aria-selected="true">外观</button>
+                    <button id="nav-links" class="settings-nav-item" role="tab"
+                        aria-selected="false">快捷链接</button>
+                    <button id="nav-backup" class="settings-nav-item" role="tab"
+                        aria-selected="false">备份</button>
+                    <button id="nav-about" class="settings-nav-item" role="tab"
+                        aria-selected="false">关于</button>
+                </nav>
+                <div class="settings-content">
+                    <section id="appearance-section" class="settings-section" role="tabpanel">
+                        <h3 class="settings-section-title">外观</h3>
+                        <p class="settings-section-desc">配色方案同时作用于浅色与深色模式，不影响快捷链接外观。</p>
+                        <div id="scheme-cards" class="scheme-cards" role="radiogroup" aria-label="配色方案">
+                            <button type="button" class="scheme-card" data-scheme="forest" role="radio"
+                                aria-checked="true">
+                                <span class="scheme-swatches" aria-hidden="true">
+                                    <span class="swatch-row swatch-light"><i></i><i></i><i></i></span>
+                                    <span class="swatch-row swatch-dark"><i></i><i></i><i></i></span>
+                                </span>
+                                <span class="scheme-card-name">森绿</span>
+                                <span class="scheme-badge">默认</span>
+                                <svg class="scheme-check" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M3.5 8.5L6.5 11.5L12.5 4.5" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <button type="button" class="scheme-card" data-scheme="ocean" role="radio"
+                                aria-checked="false">
+                                <span class="scheme-swatches" aria-hidden="true">
+                                    <span class="swatch-row swatch-light"><i></i><i></i><i></i></span>
+                                    <span class="swatch-row swatch-dark"><i></i><i></i><i></i></span>
+                                </span>
+                                <span class="scheme-card-name">碧蓝</span>
+                                <svg class="scheme-check" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M3.5 8.5L6.5 11.5L12.5 4.5" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <button type="button" class="scheme-card" data-scheme="amber" role="radio"
+                                aria-checked="false">
+                                <span class="scheme-swatches" aria-hidden="true">
+                                    <span class="swatch-row swatch-light"><i></i><i></i><i></i></span>
+                                    <span class="swatch-row swatch-dark"><i></i><i></i><i></i></span>
+                                </span>
+                                <span class="scheme-card-name">琥珀</span>
+                                <svg class="scheme-check" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M3.5 8.5L6.5 11.5L12.5 4.5" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <button type="button" class="scheme-card" data-scheme="slate" role="radio"
+                                aria-checked="false">
+                                <span class="scheme-swatches" aria-hidden="true">
+                                    <span class="swatch-row swatch-light"><i></i><i></i><i></i></span>
+                                    <span class="swatch-row swatch-dark"><i></i><i></i><i></i></span>
+                                </span>
+                                <span class="scheme-card-name">岩墨</span>
+                                <svg class="scheme-check" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M3.5 8.5L6.5 11.5L12.5 4.5" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <h4 class="settings-sub-title">时间格式</h4>
+                        <div class="segmented-control">
+                            <label class="segment-option">
+                                <input type="radio" name="hour-format" id="hour-format-24" value="24" checked>
+                                <span class="segment-label">24 小时</span>
+                            </label>
+                            <label class="segment-option">
+                                <input type="radio" name="hour-format" id="hour-format-12" value="12">
+                                <span class="segment-label">12 小时</span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section id="links-section" class="settings-section" role="tabpanel" hidden>
+                        <h3 class="settings-section-title">快捷链接</h3>
+                        <p class="settings-section-desc">管理启动器中的快捷链接，拖拽行调整顺序。</p>
+                        <button id="settings-add-link" class="btn btn-primary settings-add-link">＋ 添加快捷链接</button>
+                        <div id="settings-link-list" class="settings-link-list"></div>
+                    </section>
+
+                    <section id="backup-section" class="settings-section" role="tabpanel" hidden>
+                        <h3 class="settings-section-title">备份</h3>
+                        <p class="settings-section-desc">将快捷链接导出为 JSON 或从 JSON 导入。</p>
+                        <div id="export-panel" class="settings-panel">
+                            <p id="export-hint" class="panel-hint">将快捷链接导出为 JSON</p>
+                            <div class="modal-row">
+                                <button id="export-clipboard-btn" class="btn btn-primary">复制到剪贴板</button>
+                                <button id="export-file-btn" class="btn btn-secondary">导出到文件</button>
+                            </div>
+                        </div>
+                        <div id="import-section" class="settings-panel">
+                            <label class="settings-field-label" for="import-json">粘贴 JSON 数据</label>
+                            <textarea id="import-json" placeholder='{"version":1,"links":[...]}' rows="4"></textarea>
+                            <div class="import-divider">或</div>
+                            <label for="import-file" class="btn import-file-btn">选择文件</label>
+                            <input type="file" id="import-file" accept=".json" class="sr-only">
+                        </div>
+                        <div id="import-message" class="import-message" style="display: none;"></div>
+                    </section>
+
+                    <section id="about-section" class="settings-section" role="tabpanel" hidden>
+                        <h3 class="settings-section-title">关于</h3>
+                        <div class="about-card">
+                            <p class="about-name">极简新标签页 <span id="about-version" class="about-version"></span></p>
+                            <p class="about-license">MIT License · 一个极简的新标签页扩展</p>
+                            <a class="about-link" href="https://github.com/Planetes1mal/minimal-new-tab"
+                                target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                        </div>
+                    </section>
                 </div>
-                <div id="appearance-panel" class="settings-panel" style="display: none;" role="tabpanel">
-                    <p class="panel-hint">配色方案同时作用于浅色与深色模式，不影响快捷链接外观。</p>
-                    <div id="scheme-list" class="scheme-list" role="radiogroup" aria-label="配色方案">
-                        <button type="button" class="scheme-row" data-scheme="forest" role="radio"
-                            aria-checked="true">
-                            <span class="scheme-dot" aria-hidden="true"></span>
-                            <span class="scheme-name">森绿</span>
-                            <span class="scheme-badge">默认</span>
-                        </button>
-                        <button type="button" class="scheme-row" data-scheme="ocean" role="radio"
-                            aria-checked="false">
-                            <span class="scheme-dot" aria-hidden="true"></span>
-                            <span class="scheme-name">碧蓝</span>
-                        </button>
-                        <button type="button" class="scheme-row" data-scheme="amber" role="radio"
-                            aria-checked="false">
-                            <span class="scheme-dot" aria-hidden="true"></span>
-                            <span class="scheme-name">琥珀</span>
-                        </button>
-                        <button type="button" class="scheme-row" data-scheme="slate" role="radio"
-                            aria-checked="false">
-                            <span class="scheme-dot" aria-hidden="true"></span>
-                            <span class="scheme-name">岩墨</span>
-                        </button>
-                    </div>
-                    <p class="panel-section-label">时间格式</p>
-                    <div class="segmented-control">
-                        <label class="segment-option">
-                            <input type="radio" name="hour-format" id="hour-format-24" value="24" checked>
-                            <span class="segment-label">24 小时</span>
-                        </label>
-                        <label class="segment-option">
-                            <input type="radio" name="hour-format" id="hour-format-12" value="12">
-                            <span class="segment-label">12 小时</span>
-                        </label>
-                    </div>
-                </div>
-                <div id="export-panel" class="settings-panel" role="tabpanel">
-                    <p id="export-hint" class="panel-hint">将快捷链接导出为 JSON</p>
-                    <div class="modal-row">
-                        <button id="export-clipboard-btn" class="btn btn-primary">复制到剪贴板</button>
-                        <button id="export-file-btn" class="btn btn-secondary">导出到文件</button>
-                    </div>
-                </div>
-                <div id="import-section" class="form-group settings-panel" style="display: none;" role="tabpanel">
-                    <label>粘贴 JSON 数据</label>
-                    <textarea id="import-json" placeholder='{"version":1,"links":[...]}' rows="4"></textarea>
-                    <div class="import-divider">或</div>
-                    <label for="import-file" class="btn import-file-btn">选择文件</label>
-                    <input type="file" id="import-file" accept=".json" class="sr-only">
-                </div>
-                <div id="import-message" class="import-message" style="display: none;"></div>
             </div>
         </div>
     </div>
