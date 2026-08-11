@@ -415,7 +415,8 @@ body.loaded .launcher {
 
 .time .colon {
     display: inline-block;
-    width: 0.7ch;
+    /* 等宽字体中冒号字形宽 1ch，容器取 1ch 使两侧间隙由字距对称均分 */
+    width: 1ch;
     color: var(--c-text-primary);
     text-align: center;
 }
@@ -1315,6 +1316,7 @@ textarea#import-json {    min-height: 104px;
 }
 
 .settings-link-list {
+    position: relative; /* 拖拽插入线的定位祖先 */
     display: grid;
     gap: 6px;
 }

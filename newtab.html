@@ -22,7 +22,7 @@
                 title="切换搜索引擎">
                 <svg id="engine-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"></svg>
             </button>
-            <input type="text" id="search-input" placeholder="搜索网络..." autofocus aria-label="搜索内容">
+            <input type="text" id="search-input" placeholder="Searching..." autofocus aria-label="搜索内容">
             <button type="submit" id="search-button" class="search-submit" aria-label="搜索">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
@@ -96,6 +96,8 @@
                 <nav class="settings-nav" role="tablist" aria-label="设置分区">
                     <button id="nav-appearance" class="settings-nav-item active" role="tab"
                         aria-selected="true">外观</button>
+                    <button id="nav-general" class="settings-nav-item" role="tab"
+                        aria-selected="false">通用</button>
                     <button id="nav-links" class="settings-nav-item" role="tab"
                         aria-selected="false">快捷链接</button>
                     <button id="nav-backup" class="settings-nav-item" role="tab"
@@ -160,6 +162,11 @@
                                 </svg>
                             </button>
                         </div>
+                    </section>
+
+                    <section id="general-section" class="settings-section" role="tabpanel" hidden>
+                        <h3 class="settings-section-title">通用</h3>
+                        <p class="settings-section-desc">时间显示与链接打开的偏好设置。</p>
                         <h4 class="settings-sub-title">时间格式</h4>
                         <div class="segmented-control">
                             <label class="segment-option">

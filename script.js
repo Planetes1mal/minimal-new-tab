@@ -271,6 +271,11 @@ const shortcutManager = {
         return this.shortcuts[action] || SHORTCUT_ACTIONS[action].defaultKey;
     },
 
+    // 组合键的显示形式（存储/匹配用完整键名，显示层缩写，如 Escape → ESC）
+    displayKey(key) {
+        return key.replace('Escape', 'ESC');
+    },
+
     // 键盘事件 → 组合键字符串，如 Ctrl+Shift+L、/、Escape
     formatKey(event) {
         const parts = [];
@@ -349,7 +354,7 @@ const shortcutManager = {
 
             const key = document.createElement('kbd');
             key.className = 'shortcut-key';
-            key.textContent = this.getKey(action);
+            key.textContent = this.displayKey(this.getKey(action));
 
             row.appendChild(name);
             row.appendChild(key);
@@ -392,7 +397,7 @@ const shortcutManager = {
                 row.classList.remove('recording');
                 keyEl.textContent = `冲突：${SHORTCUT_ACTIONS[conflict].label}`;
                 setTimeout(() => {
-                    keyEl.textContent = this.getKey(action);
+                    keyEl.textContent = this.displayKey(this.getKey(action));
                 }, 1500);
                 this.finishRecording();
                 return;
@@ -401,7 +406,7 @@ const shortcutManager = {
             this.shortcuts[action] = key;
             this.saveShortcuts();
             row.classList.remove('recording');
-            keyEl.textContent = key;
+            keyEl.textContent = this.displayKey(key);
             this.finishRecording();
         };
         document.addEventListener('keydown', this.recordingHandler);
@@ -409,7 +414,7 @@ const shortcutManager = {
 
     cancelRecording(row, keyEl) {
         row.classList.remove('recording');
-        keyEl.textContent = this.getKey(this.recordingAction);
+        keyEl.textContent = this.displayKey(this.getKey(this.recordingAction));
         this.finishRecording();
     },
 
@@ -1249,6 +1254,7 @@ const settingsBtn = document.getElementById('settings-btn');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
 const settingsNavItems = {
     appearance: document.getElementById('nav-appearance'),
+    general: document.getElementById('nav-general'),
     links: document.getElementById('nav-links'),
     backup: document.getElementById('nav-backup'),
     shortcuts: document.getElementById('nav-shortcuts'),
@@ -1256,6 +1262,7 @@ const settingsNavItems = {
 };
 const settingsSections = {
     appearance: document.getElementById('appearance-section'),
+    general: document.getElementById('general-section'),
     links: document.getElementById('links-section'),
     backup: document.getElementById('backup-section'),
     shortcuts: document.getElementById('shortcuts-section'),
@@ -1281,6 +1288,7 @@ function showSettingsSection(sectionName) {
 
     if (sectionName === 'appearance') {
         schemeManager.updateSchemeCards();
+    } else if (sectionName === 'general') {
         updateHourFormatControl();
         updateOpenBehaviorControl();
     } else if (sectionName === 'links') {
