@@ -36,89 +36,18 @@ const themeManager = {
 
     // 应用主题
     applyTheme() {
-        const root = document.documentElement;
         const themeToggle = document.getElementById('theme-toggle');
         const body = document.body;
 
+        body.classList.remove('light', 'dark');
+        themeToggle.classList.remove('light', 'dark');
+
         if (this.currentTheme === 'dark') {
-            this.applyDarkTheme();
-            themeToggle.classList.add('dark');
-            themeToggle.classList.remove('light');
             body.classList.add('dark');
-            body.classList.remove('light');
+            themeToggle.classList.add('dark');
         } else if (this.currentTheme === 'light') {
-            this.applyLightTheme();
-            themeToggle.classList.add('light');
-            themeToggle.classList.remove('dark');
             body.classList.add('light');
-            body.classList.remove('dark');
-        } else {
-            // 跟随系统设置
-            this.followSystemTheme();
-            themeToggle.classList.remove('light', 'dark');
-            body.classList.remove('light', 'dark');
-        }
-    },
-
-    // 应用深色主题
-    applyDarkTheme() {
-        const root = document.documentElement;
-        root.style.setProperty('--c-bg', '#121212');
-        root.style.setProperty('--c-surface', '#1e1e1e');
-        root.style.setProperty('--c-surface-container', '#333333');
-        root.style.setProperty('--c-text-primary', '#e0e0e0');
-        root.style.setProperty('--c-text-secondary', '#a0a0a0');
-        root.style.setProperty('--c-border', '#3a3a3a');
-        root.style.setProperty('--c-accent', '#3399ff');
-        root.style.setProperty('--c-input-bg', '#2a2a2a');
-        root.style.setProperty('--c-input-border', '#3a3a3a');
-        root.style.setProperty('--c-button-hover', '#404040');
-        root.style.setProperty('--c-segment-bg', '#2a2a2a');
-        root.style.setProperty('--c-segment-border', '#3a3a3a');
-        root.style.setProperty('--c-segment-divider', '#4a4a4a');
-        root.style.setProperty('--c-custom-url-bg', '#2a2a2a');
-        root.style.setProperty('--c-custom-url-border', '#3a3a3a');
-        root.style.setProperty('--c-theme-toggle-bg', '#333333');
-        root.style.setProperty('--c-theme-toggle-border', '#3a3a3a');
-        root.style.setProperty('--c-theme-toggle-hover', '#404040');
-    },
-
-    // 应用浅色主题
-    applyLightTheme() {
-        const root = document.documentElement;
-        root.style.setProperty('--c-bg', '#ffffff');
-        root.style.setProperty('--c-surface', '#ffffff');
-        root.style.setProperty('--c-surface-container', '#f5f5f7');
-        root.style.setProperty('--c-text-primary', '#1a1a1a');
-        root.style.setProperty('--c-text-secondary', '#666666');
-        root.style.setProperty('--c-border', '#e1e5e9');
-        root.style.setProperty('--c-accent', '#007aff');
-        root.style.setProperty('--c-input-bg', '#fafbfc');
-        root.style.setProperty('--c-input-border', '#e1e5e9');
-        root.style.setProperty('--c-button-hover', '#e5e5e7');
-        root.style.setProperty('--c-segment-bg', '#f5f5f7');
-        root.style.setProperty('--c-segment-border', '#e1e5e9');
-        root.style.setProperty('--c-segment-divider', '#d1d5db');
-        root.style.setProperty('--c-custom-url-bg', '#f8f9fa');
-        root.style.setProperty('--c-custom-url-border', '#e9ecef');
-        root.style.setProperty('--c-theme-toggle-bg', '#f5f5f7');
-        root.style.setProperty('--c-theme-toggle-border', '#e1e5e9');
-        root.style.setProperty('--c-theme-toggle-hover', '#e5e5e7');
-    },
-
-    // 跟随系统主题
-    followSystemTheme() {
-        // 移除所有手动设置的样式，让CSS媒体查询生效
-        const root = document.documentElement;
-        const computedStyle = getComputedStyle(root);
-
-        // 检查系统是否处于深色模式
-        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-        if (isDarkMode) {
-            this.applyDarkTheme();
-        } else {
-            this.applyLightTheme();
+            themeToggle.classList.add('light');
         }
     },
 
@@ -164,9 +93,10 @@ function updateDateTime() {
     // 使用可单独控制的冒号元素，便于动画
     timeEl.innerHTML = `${hours}<span class="colon">:</span>${minutes}`;
 
-    // 更新日期 - 使用英文格式
-    const options = { month: 'short', day: 'numeric', weekday: 'long' };
-    document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
+    // 更新日期 - 紧凑大写英文格式，如 MONDAY · AUG 11
+    const options = { weekday: 'long', month: 'short', day: 'numeric' };
+    const dateText = now.toLocaleDateString('en-US', options).toUpperCase().replace(',', ' ·');
+    document.getElementById('date').textContent = dateText;
 }
 
 // 每秒更新一次时间
@@ -176,23 +106,17 @@ setInterval(updateDateTime, 1000);
 // 搜索引擎图标路径
 const engineIcons = {
     google: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.147-3.253 2.12-2.12 2.793-5.333 2.793-8.267 0-.8-.053-1.467-.173-2.133H12.48z',
-    bing: 'M3.3 0v24l8.4-4.6V4.4zm9.5 5.6L18.6 9l-5.8 3.4v4.8l8.2-4.7V6.2z',
-    yandex: 'm5.2 24v-7.786l-5.2-13.964h2.616l3.834 10.767 4.41-13.018h2.405l-5.658 16.303v7.697z'
+    bing: 'M3.3 0v24l8.4-4.6V4.4zm9.5 5.6L18.6 9l-5.8 3.4v4.8l8.2-4.7V6.2z'
 };
 
 // 搜索引擎配置
 const engines = [
     { name: 'google', url: 'https://www.google.com/search?q=' },
-    { name: 'bing', url: 'https://www.bing.com/search?q=' },
-    { name: 'yandex', url: 'https://yandex.com/search/?text=' }
+    { name: 'bing', url: 'https://www.bing.com/search?q=' }
 ];
 
 // 当前搜索引擎索引
 let currentEngineIndex = 0;
-
-// DOM元素引用（在DOMContentLoaded中初始化）
-let engineSelector;
-let engineDropdown;
 
 // 更新搜索引擎图标
 function updateEngineIcon() {
@@ -207,149 +131,19 @@ function updateEngineIcon() {
     engineIcon.appendChild(path);
 }
 
-// 初始化下拉菜单
-function initEngineDropdown() {
-    engineDropdown.innerHTML = '';
-
-    engines.forEach((engine, index) => {
-        const option = document.createElement('div');
-        option.className = 'engine-option';
-        option.setAttribute('role', 'menuitem');
-        option.setAttribute('tabindex', '0');
-
-        if (index === currentEngineIndex) {
-            option.classList.add('active');
-        }
-
-        option.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="${engineIcons[engine.name]}"/>
-            </svg>
-            <span>${engine.name.charAt(0).toUpperCase() + engine.name.slice(1)}</span>
-        `;
-
-        // 点击选择
-        option.addEventListener('click', () => {
-            selectEngine(index);
-        });
-
-        // 键盘支持
-        option.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                selectEngine(index);
-            } else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                focusNextOption(index);
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                focusPrevOption(index);
-            }
-        });
-
-        engineDropdown.appendChild(option);
-    });
-
-    // 添加ARIA属性
-    engineDropdown.setAttribute('role', 'menu');
-    engineDropdown.setAttribute('aria-label', '选择搜索引擎');
-}
-
-// 切换下拉菜单显示/隐藏
-function toggleEngineDropdown() {
-    const isShown = engineDropdown.classList.contains('show');
-    engineDropdown.classList.toggle('show');
-    engineSelector.setAttribute('aria-expanded', !isShown);
-
-    // 如果打开菜单，调整位置并聚焦
-    if (!isShown) {
-        // 使用requestAnimationFrame确保DOM更新后再调整位置
-        requestAnimationFrame(() => {
-            adjustDropdownPosition();
-            const firstOption = engineDropdown.querySelector('.engine-option');
-            if (firstOption) firstOption.focus();
-        });
-    }
-}
-
-// 调整下拉菜单位置，避免超出视口
-function adjustDropdownPosition() {
-    const rect = engineDropdown.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-
-    // 如果菜单底部超出视口，向上展开
-    if (rect.bottom > viewportHeight) {
-        engineDropdown.classList.add('expand-up');
-    } else {
-        engineDropdown.classList.remove('expand-up');
-    }
-}
-
-// 选择搜索引擎
-function selectEngine(index) {
-    currentEngineIndex = index;
+// 切换搜索引擎
+function toggleEngine() {
+    currentEngineIndex = (currentEngineIndex + 1) % engines.length;
     storage.set({ 'searchEngine': engines[currentEngineIndex].url }, function () {
-        if (chrome.runtime.lastError) {
-            console.error('保存搜索引擎设置失败:', chrome.runtime.lastError);
-            return;
-        }
         updateEngineIcon();
-        updateDropdownActive();
-        engineDropdown.classList.remove('show');
-        engineSelector.setAttribute('aria-expanded', 'false');
-        engineSelector.focus(); // 返回焦点到触发元素
     });
 }
 
-// 更新下拉菜单活动状态
-function updateDropdownActive() {
-    const options = engineDropdown.querySelectorAll('.engine-option');
-    options.forEach((option, index) => {
-        if (index === currentEngineIndex) {
-            option.classList.add('active');
-        } else {
-            option.classList.remove('active');
-        }
-    });
-}
-
-// 键盘导航：聚焦下一个选项
-function focusNextOption(currentIndex) {
-    const options = engineDropdown.querySelectorAll('.engine-option');
-    const nextIndex = (currentIndex + 1) % options.length;
-    options[nextIndex].focus();
-}
-
-// 键盘导航：聚焦上一个选项
-function focusPrevOption(currentIndex) {
-    const options = engineDropdown.querySelectorAll('.engine-option');
-    const prevIndex = (currentIndex - 1 + options.length) % options.length;
-    options[prevIndex].focus();
-}
-
-// 处理搜索功能
-document.getElementById('search-button').addEventListener('click', performSearch);
-document.getElementById('search-input').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        performSearch();
-    }
+// 处理搜索功能：表单提交覆盖回车键与搜索按钮两种提交方式
+document.getElementById('search-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    performSearch();
 });
-
-// 搜索框聚焦时，给容器添加模糊效果
-function setupSearchFocusBlur() {
-    const searchInput = document.getElementById('search-input');
-    const container = document.querySelector('.container');
-
-    if (searchInput && container) {
-        searchInput.addEventListener('focus', function () {
-            container.classList.add('search-focused');
-        });
-
-        searchInput.addEventListener('blur', function () {
-            container.classList.remove('search-focused');
-        });
-    }
-}
 
 // 根据单选切换，自定义 URL 输入框显示状态
 document.addEventListener('change', function (e) {
@@ -442,21 +236,26 @@ function deriveFaviconUrl(linkUrl) {
     }
 }
 
+// 补齐链接缺失的图标字段
+function normalizeLink(link) {
+    const next = { ...link };
+    if (!next.iconMode) {
+        next.iconMode = 'favicon';
+    }
+    if (!next.icon && next.iconMode === 'favicon') {
+        next.icon = deriveFaviconUrl(next.url);
+    }
+    return next;
+}
+
 // 从存储中加载链接或使用默认链接，并补齐缺失的图标字段
 function loadLinks() {
     storage.get('quickLinks', function (data) {
-        let links = data.quickLinks || defaultLinks;
-
-        // 为缺少 icon/iconMode 的项补充，并在有变更时保存
+        const original = data.quickLinks || defaultLinks;
         let mutated = false;
-        links = links.map(link => {
-            const next = { ...link };
-            if (!next.iconMode) {
-                next.iconMode = 'favicon';
-                mutated = true;
-            }
-            if (!next.icon && next.iconMode === 'favicon') {
-                next.icon = deriveFaviconUrl(next.url);
+        const links = original.map(link => {
+            const next = normalizeLink(link);
+            if (next.iconMode !== link.iconMode || next.icon !== link.icon) {
                 mutated = true;
             }
             return next;
@@ -534,14 +333,29 @@ function renderLinks(links) {
         nameElement.textContent = link.name;
 
         // 创建删除按钮
-        const deleteElement = document.createElement('div');
+        const deleteElement = document.createElement('span');
         deleteElement.className = 'delete-link';
-        deleteElement.textContent = '×';
-        deleteElement.onclick = function (e) {
+        deleteElement.setAttribute('role', 'button');
+        deleteElement.setAttribute('tabindex', '0');
+        deleteElement.setAttribute('aria-label', `删除 ${link.name}`);
+        deleteElement.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 7H20M9 7V4H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16M14 11V16"></path>
+            </svg>
+        `;
+
+        const handleDelete = function (e) {
             e.preventDefault();
             e.stopPropagation();
             deleteLink(index);
         };
+        deleteElement.addEventListener('click', handleDelete);
+        deleteElement.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                handleDelete(e);
+            }
+        });
 
         linkElement.appendChild(iconElement);
         linkElement.appendChild(nameElement);
@@ -641,7 +455,7 @@ function setupDragAndDrop() {
 // 交换链接位置
 function swapLinks(fromIndex, toIndex) {
     storage.get('quickLinks', function (data) {
-        let links = data.quickLinks || defaultLinks;
+        const links = (data.quickLinks || defaultLinks).slice();
 
         // 交换数组中的元素
         if (fromIndex >= 0 && fromIndex < links.length &&
@@ -661,7 +475,7 @@ function swapLinks(fromIndex, toIndex) {
 // 删除链接
 function deleteLink(index) {
     storage.get('quickLinks', function (data) {
-        let links = data.quickLinks || defaultLinks;
+        const links = (data.quickLinks || defaultLinks).slice();
         links.splice(index, 1);
         saveLinks(links);
     });
@@ -684,7 +498,7 @@ function handleSaveLink() {
         if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
 
         storage.get('quickLinks', function (data) {
-            let links = data.quickLinks || defaultLinks;
+            const links = (data.quickLinks || defaultLinks).slice();
 
             if (modal.dataset.mode === 'edit') {
                 // 编辑模式：更新指定索引
@@ -745,7 +559,7 @@ function attachContextMenu(links) {
 const modal = document.getElementById('add-link-modal');
 modal.dataset.mode = 'add';
 const addLinkButton = document.getElementById('add-link-button');
-const closeButton = document.querySelector('.close-btn');
+const closeButton = modal.querySelector('.close-btn');
 const cancelButton = document.getElementById('cancel-link');
 const saveLinkButton = document.getElementById('save-link');
 
@@ -769,6 +583,13 @@ addLinkButton.onclick = function (e) {
         customInput.value = '';
     }
 };
+
+addLinkButton.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        addLinkButton.click();
+    }
+});
 
 // 关闭模态框
 function closeModal() {
@@ -805,20 +626,51 @@ saveLinkButton.onclick = handleSaveLink;
 const settingsModal = document.getElementById('settings-modal');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
-const exportBtn = document.getElementById('export-btn');
-const importBtn = document.getElementById('import-btn');
+const settingsTabs = {
+    export: document.getElementById('tab-export'),
+    import: document.getElementById('tab-import')
+};
+const exportPanel = document.getElementById('export-panel');
+const exportHint = document.getElementById('export-hint');
+const exportClipboardBtn = document.getElementById('export-clipboard-btn');
+const exportFileBtn = document.getElementById('export-file-btn');
 const importSection = document.getElementById('import-section');
 const importJson = document.getElementById('import-json');
 const importFile = document.getElementById('import-file');
 const importMessage = document.getElementById('import-message');
 
+// 切换设置面板：导出 / 导入
+function setActiveTab(tabName) {
+    settingsTabs.export.classList.toggle('active', tabName === 'export');
+    settingsTabs.import.classList.toggle('active', tabName === 'import');
+    settingsTabs.export.setAttribute('aria-selected', String(tabName === 'export'));
+    settingsTabs.import.setAttribute('aria-selected', String(tabName === 'import'));
+}
+
+function showExportPanel() {
+    setActiveTab('export');
+    exportPanel.style.display = 'block';
+    importSection.style.display = 'none';
+    importMessage.style.display = 'none';
+    storage.get('quickLinks', function (data) {
+        const count = (data.quickLinks || defaultLinks).length;
+        exportHint.textContent = `将 ${count} 个快捷链接导出为 JSON`;
+    });
+}
+
+function showImportPanel() {
+    setActiveTab('import');
+    exportPanel.style.display = 'none';
+    importSection.style.display = 'block';
+    importMessage.style.display = 'none';
+    importJson.value = '';
+}
+
 function initSettings() {
-    // 打开设置弹窗
+    // 打开设置弹窗，默认停留在导出页
     settingsBtn.addEventListener('click', function () {
         settingsModal.style.display = 'block';
-        importSection.style.display = 'none';
-        importMessage.style.display = 'none';
-        importJson.value = '';
+        showExportPanel();
     });
 
     // 关闭设置弹窗
@@ -829,13 +681,24 @@ function initSettings() {
         }
     });
 
-    // 导出
-    exportBtn.addEventListener('click', exportLinks);
-
-    // 导入
-    importBtn.addEventListener('click', function () {
-        importSection.style.display = 'block';
+    // 导出 / 导入页签切换
+    const tabList = [settingsTabs.export, settingsTabs.import];
+    settingsTabs.export.addEventListener('click', showExportPanel);
+    settingsTabs.import.addEventListener('click', showImportPanel);
+    tabList.forEach(function (tab, index) {
+        tab.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const offset = e.key === 'ArrowRight' ? 1 : -1;
+                const next = (index + offset + tabList.length) % tabList.length;
+                tabList[next].click();
+            }
+        });
     });
+
+    // 导出：复制到剪贴板 / 下载文件
+    exportClipboardBtn.addEventListener('click', exportToClipboard);
+    exportFileBtn.addEventListener('click', exportToFile);
 
     // 文件导入
     importFile.addEventListener('change', function (e) {
@@ -851,6 +714,8 @@ function initSettings() {
                 }
             };
             reader.readAsText(file);
+            // 重置输入值，允许重复选择同一个文件
+            importFile.value = '';
         }
     });
 
@@ -872,16 +737,28 @@ function closeSettingsModal() {
     settingsModal.style.display = 'none';
 }
 
-function exportLinks() {
+function getExportJson(callback) {
     storage.get('quickLinks', function (data) {
-        const links = data.quickLinks || defaultLinks;
-        const exportData = {
+        const json = JSON.stringify({
             version: 1,
-            links: links
-        };
-        const json = JSON.stringify(exportData, null, 2);
+            links: data.quickLinks || defaultLinks
+        }, null, 2);
+        callback(json);
+    });
+}
 
-        // 下载文件
+function exportToClipboard() {
+    getExportJson(function (json) {
+        navigator.clipboard.writeText(json).then(function () {
+            showImportMessage('已复制到剪贴板', 'success');
+        }).catch(function () {
+            showImportMessage('复制失败，请重试', 'error');
+        });
+    });
+}
+
+function exportToFile() {
+    getExportJson(function (json) {
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -889,13 +766,7 @@ function exportLinks() {
         a.download = 'quick-links-backup.json';
         a.click();
         URL.revokeObjectURL(url);
-
-        // 复制到剪贴板
-        navigator.clipboard.writeText(json).then(function () {
-            showImportMessage('已导出并复制到剪贴板', 'success');
-        }).catch(function () {
-            showImportMessage('已下载文件', 'success');
-        });
+        showImportMessage('已导出到文件', 'success');
     });
 }
 
@@ -913,9 +784,10 @@ function handleImportData(data) {
         }
     }
 
-    // 保存并更新
-    storage.set({ 'quickLinks': data.links }, function () {
-        renderLinks(data.links);
+    // 保存并更新（自动补齐缺失的图标字段）
+    const links = data.links.map(normalizeLink);
+    storage.set({ 'quickLinks': links }, function () {
+        renderLinks(links);
         showImportMessage('导入成功！', 'success');
         setTimeout(closeSettingsModal, 1500);
     });
@@ -929,16 +801,6 @@ function showImportMessage(text, type) {
 
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
-    // 获取DOM元素
-    engineSelector = document.getElementById('engine-selector');
-    engineDropdown = document.getElementById('engine-dropdown');
-
-    // 安全检查：确保元素存在
-    if (!engineSelector || !engineDropdown) {
-        console.error('搜索引擎选择器元素未找到');
-        return;
-    }
-
     // 初始化主题管理器
     themeManager.init();
 
@@ -954,37 +816,14 @@ document.addEventListener('DOMContentLoaded', function () {
         updateEngineIcon();
     });
 
-    // 搜索引擎选择器点击事件
-    engineSelector.addEventListener('click', function(e) {
-        e.stopPropagation();
-        toggleEngineDropdown();
-    });
-
-    // 点击外部关闭下拉菜单
-    document.addEventListener('click', function(event) {
-        if (!engineSelector.contains(event.target)) {
-            engineDropdown.classList.remove('show');
-            engineSelector.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    // 键盘支持：Escape关闭菜单
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && engineDropdown.classList.contains('show')) {
-            engineDropdown.classList.remove('show');
-            engineSelector.setAttribute('aria-expanded', 'false');
-            engineSelector.focus();
-        }
-    });
-
-    // 初始化下拉菜单
-    initEngineDropdown();
+    // 绑定搜索引擎切换事件（原生按钮自带 Enter/Space 触发 click）
+    const engineSelector = document.getElementById('engine-selector');
+    if (engineSelector) {
+        engineSelector.addEventListener('click', toggleEngine);
+    }
 
     // 加载快速链接
     loadLinks();
-
-    // 设置搜索框聚焦模糊效果
-    setupSearchFocusBlur();
 
     // 设置按钮
     initSettings();

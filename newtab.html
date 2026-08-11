@@ -5,56 +5,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新标签页</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;900&display=swap"
-        rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div class="container">
-        <div class="time-container">
+        <!-- 时间与日期：位于搜索框上方，时钟是页面最大的文字元素 -->
+        <header class="time-block">
             <div id="time" class="time"></div>
             <div id="date" class="date"></div>
-        </div>
+        </header>
 
-        <div class="search-container">
-            <div class="search-box-container">
-                <div class="search-wrapper">
-                    <div class="engine-selector" id="engine-selector" title="切换搜索引擎">
-                        <svg id="engine-icon" viewBox="0 0 24 24" width="20" height="20"></svg>
+        <!-- 主搜索区：大尺寸表面，引擎选择在起始端、提交在末尾端 -->
+        <form class="search-wrapper" id="search-form" role="search" autocomplete="off">
+            <button type="button" class="engine-selector" id="engine-selector" aria-label="切换搜索引擎"
+                title="切换搜索引擎">
+                <svg id="engine-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"></svg>
+            </button>
+            <input type="text" id="search-input" placeholder="搜索网络..." autofocus aria-label="搜索内容">
+            <button type="submit" id="search-button" class="search-submit" aria-label="搜索">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                        d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+        </form>
 
-                        <!-- 下拉菜单 -->
-                        <div class="engine-dropdown" id="engine-dropdown">
-                            <!-- 菜单选项将由JavaScript动态生成 -->
-                        </div>
-                    </div>
-                    <input type="text" id="search-input" placeholder="Search..." autofocus>
-                    <button id="search-button" aria-label="搜索">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="quick-links-section">
-            <div class="quick-links" id="quick-links">
+        <!-- 快捷链接启动器：紧邻搜索框下方，横向排列、窄屏自动重排为网格 -->
+        <div class="launcher">
+            <nav class="quick-links" id="quick-links" aria-label="快捷链接">
                 <!-- 快速链接将通过JS动态添加 -->
-                <a id="add-link-button" class="quick-link add-link">
-                    <div class="quick-link-icon add-link-button">+</div>
-                    <div class="quick-link-name">添加</div>
+                <a id="add-link-button" class="quick-link add-link" role="button" tabindex="0"
+                    aria-label="添加快捷链接" title="添加快捷链接">
+                    <span class="quick-link-icon add-link-button" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round">
+                            <path d="M12 5V19M5 12H19"></path>
+                        </svg>
+                    </span>
+                    <span class="quick-link-name">添加</span>
                 </a>
-            </div>
+            </nav>
         </div>
     </div>
 
     <!-- 设置按钮 -->
-    <button id="settings-btn" class="corner-btn" aria-label="设置">
+    <button id="settings-btn" class="corner-btn" aria-label="设置" title="设置">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -62,7 +59,7 @@
     </button>
 
     <!-- 主题切换按钮 -->
-    <button id="theme-toggle" class="theme-toggle" aria-label="切换主题">
+    <button id="theme-toggle" class="theme-toggle" aria-label="切换主题" title="切换主题">
         <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 50 50" fill="none">
             <circle cx="25" cy="25" r="9" stroke="currentColor" stroke-width="2" />
             <line x1="25" y1="45" x2="25" y2="39" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -98,16 +95,26 @@
             <div class="modal-form">
                 <div class="form-group">
                     <label>快捷链接管理</label>
-                    <div style="display: flex; gap: 12px;">
-                        <button id="export-btn" class="btn btn-primary" style="flex: 1;">导出</button>
-                        <button id="import-btn" class="btn btn-secondary" style="flex: 1;">导入</button>
+                    <div class="modal-row settings-tabs" role="tablist" aria-label="快捷链接管理">
+                        <button id="tab-export" class="btn btn-secondary settings-tab active" role="tab"
+                            aria-selected="true">导出</button>
+                        <button id="tab-import" class="btn btn-secondary settings-tab" role="tab"
+                            aria-selected="false">导入</button>
                     </div>
                 </div>
-                <div id="import-section" class="form-group" style="display: none;">
+                <div id="export-panel" class="settings-panel" role="tabpanel">
+                    <p id="export-hint" class="panel-hint">将快捷链接导出为 JSON</p>
+                    <div class="modal-row">
+                        <button id="export-clipboard-btn" class="btn btn-primary">复制到剪贴板</button>
+                        <button id="export-file-btn" class="btn btn-secondary">导出到文件</button>
+                    </div>
+                </div>
+                <div id="import-section" class="form-group settings-panel" style="display: none;" role="tabpanel">
                     <label>粘贴 JSON 数据</label>
                     <textarea id="import-json" placeholder='{"version":1,"links":[...]}' rows="4"></textarea>
-                    <div style="margin-top: 12px; text-align: center; color: var(--c-text-secondary);">或</div>
-                    <input type="file" id="import-file" accept=".json" style="margin-top: 12px;">
+                    <div class="import-divider">或</div>
+                    <label for="import-file" class="btn import-file-btn">选择文件</label>
+                    <input type="file" id="import-file" accept=".json" class="sr-only">
                 </div>
                 <div id="import-message" class="import-message" style="display: none;"></div>
             </div>
