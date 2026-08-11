@@ -35,3 +35,12 @@
 启动器的排序交互语义：拖拽时在目标空隙显示 2px 强调色竖直插入线，
 松手后链接**插入**到线所在位置，后续条目后移（insert），而非与相邻条目交换（swap）。
 
+### 键盘快捷键 (keyboard shortcut)
+页面行为的键盘触发方式：聚焦搜索、打开设置、切换主题、关闭弹窗。
+组合键以 `Mod+Key` 字符串表示（如 `Ctrl+Shift+L`），可自定义并持久化在
+`customShortcuts` 键；输入框聚焦时不触发。
+
+### 打开方式 (open behavior)
+链接与搜索结果的打开位置：新标签页（默认，`window.open`）或当前标签页
+（`location.href`）。持久化在 `openInNewTab` 键。
+

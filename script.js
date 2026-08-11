@@ -220,6 +220,257 @@ function updateHourFormatControl() {
     }
 }
 
+// 键盘快捷键管理：4 个动作，可自定义组合键，输入框聚焦时不触发
+const SHORTCUT_ACTIONS = {
+    focusSearch: { label: '聚焦搜索', defaultKey: '/' },
+    openSettings: { label: '打开设置', defaultKey: 'Ctrl+,' },
+    toggleTheme: { label: '切换主题', defaultKey: 'Ctrl+Shift+L' },
+    closeModal: { label: '关闭弹窗', defaultKey: 'Escape' }
+};
+
+const shortcutManager = {
+    shortcuts: {},
+    recordingAction: null,
+    recordingHandler: null,
+    STORAGE_KEY: 'customShortcuts',
+
+    init() {
+        this.loadShortcuts();
+        this.renderShortcutList();
+        document.addEventListener('keydown', (e) => this.handleKeydown(e));
+    },
+
+    // 加载自定义快捷键（默认值不落盘）
+    loadShortcuts() {
+        this.shortcuts = {};
+        try {
+            const saved = localStorage.getItem(this.STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.keys(SHORTCUT_ACTIONS).forEach(action => {
+                    if (typeof parsed[action] === 'string' && parsed[action]) {
+                        this.shortcuts[action] = parsed[action];
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Error loading shortcuts:', e);
+        }
+    },
+
+    saveShortcuts() {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.shortcuts));
+        } catch (e) {
+            console.error('Error saving shortcuts:', e);
+        }
+    },
+
+    // 当前动作生效的键（自定义优先，回退默认）
+    getKey(action) {
+        return this.shortcuts[action] || SHORTCUT_ACTIONS[action].defaultKey;
+    },
+
+    // 键盘事件 → 组合键字符串，如 Ctrl+Shift+L、/、Escape
+    formatKey(event) {
+        const parts = [];
+        if (event.ctrlKey) parts.push('Ctrl');
+        if (event.shiftKey) parts.push('Shift');
+        if (event.altKey) parts.push('Alt');
+        if (event.metaKey) parts.push('Meta');
+        let key = event.key;
+        if (key === ' ') key = 'Space';
+        if (key.length === 1) key = key.toUpperCase();
+        parts.push(key);
+        return parts.join('+');
+    },
+
+    // 全局按键处理：匹配动作并执行；录制态与输入态不处理
+    handleKeydown(event) {
+        if (this.recordingAction) return;
+        const target = event.target;
+        const isTyping = target && (
+            target.matches('input, textarea, select') || target.isContentEditable
+        );
+        if (isTyping) return;
+
+        const key = this.formatKey(event);
+        for (const action of Object.keys(SHORTCUT_ACTIONS)) {
+            if (this.getKey(action) === key) {
+                event.preventDefault();
+                this.dispatch(action);
+                return;
+            }
+        }
+    },
+
+    // 执行动作
+    dispatch(action) {
+        switch (action) {
+            case 'focusSearch': {
+                const input = document.getElementById('search-input');
+                if (input) input.focus();
+                break;
+            }
+            case 'openSettings':
+                settingsModal.style.display = 'block';
+                showSettingsSection('appearance');
+                break;
+            case 'toggleTheme':
+                themeManager.toggleTheme();
+                break;
+            case 'closeModal':
+                if (settingsModal.style.display === 'block') {
+                    closeSettingsModal();
+                }
+                if (modal.style.display === 'block') {
+                    closeModal();
+                }
+                break;
+        }
+    },
+
+    // 渲染快捷键列表
+    renderShortcutList() {
+        const list = document.getElementById('shortcut-list');
+        if (!list) return;
+        list.innerHTML = '';
+
+        Object.keys(SHORTCUT_ACTIONS).forEach(action => {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'shortcut-row';
+            row.dataset.action = action;
+            row.setAttribute('aria-label', `修改快捷键：${SHORTCUT_ACTIONS[action].label}`);
+
+            const name = document.createElement('span');
+            name.className = 'shortcut-name';
+            name.textContent = SHORTCUT_ACTIONS[action].label;
+
+            const key = document.createElement('kbd');
+            key.className = 'shortcut-key';
+            key.textContent = this.getKey(action);
+
+            row.appendChild(name);
+            row.appendChild(key);
+            row.addEventListener('click', () => this.startRecording(action, row));
+            list.appendChild(row);
+        });
+    },
+
+    // 开始录制新组合键
+    startRecording(action, row) {
+        if (this.recordingAction) return;
+        this.recordingAction = action;
+        row.classList.add('recording');
+        const keyEl = row.querySelector('.shortcut-key');
+        keyEl.textContent = '按下新按键…';
+
+        this.recordingHandler = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Escape 取消录制（不绑定）
+            if (event.key === 'Escape') {
+                this.cancelRecording(row, keyEl);
+                return;
+            }
+
+            // 纯修饰键按下不结束录制（等待主键）
+            if (event.key === 'Control' || event.key === 'Shift' ||
+                event.key === 'Alt' || event.key === 'Meta') {
+                return;
+            }
+
+            const key = this.formatKey(event);
+
+            // 冲突检测：组合键已被其他动作占用
+            const conflict = Object.keys(SHORTCUT_ACTIONS).find(a =>
+                a !== action && this.getKey(a) === key
+            );
+            if (conflict) {
+                row.classList.remove('recording');
+                keyEl.textContent = `冲突：${SHORTCUT_ACTIONS[conflict].label}`;
+                setTimeout(() => {
+                    keyEl.textContent = this.getKey(action);
+                }, 1500);
+                this.finishRecording();
+                return;
+            }
+
+            this.shortcuts[action] = key;
+            this.saveShortcuts();
+            row.classList.remove('recording');
+            keyEl.textContent = key;
+            this.finishRecording();
+        };
+        document.addEventListener('keydown', this.recordingHandler);
+    },
+
+    cancelRecording(row, keyEl) {
+        row.classList.remove('recording');
+        keyEl.textContent = this.getKey(this.recordingAction);
+        this.finishRecording();
+    },
+
+    finishRecording() {
+        document.removeEventListener('keydown', this.recordingHandler);
+        this.recordingHandler = null;
+        this.recordingAction = null;
+    },
+
+    // 恢复默认：清空自定义
+    resetShortcuts() {
+        this.shortcuts = {};
+        try {
+            localStorage.removeItem(this.STORAGE_KEY);
+        } catch (e) {
+            console.error('Error resetting shortcuts:', e);
+        }
+        this.renderShortcutList();
+    }
+};
+
+// 打开方式：新标签页（默认）或当前标签页
+let openInNewTab = true;
+
+function loadOpenBehavior() {
+    try {
+        openInNewTab = localStorage.getItem('openInNewTab') !== 'false';
+    } catch (e) {
+        console.error('Error loading open behavior:', e);
+    }
+}
+
+function setOpenInNewTab(value) {
+    openInNewTab = value === 'new';
+    try {
+        if (openInNewTab) {
+            localStorage.removeItem('openInNewTab');
+        } else {
+            localStorage.setItem('openInNewTab', 'false');
+        }
+    } catch (e) {
+        console.error('Error saving open behavior:', e);
+    }
+}
+
+function updateOpenBehaviorControl() {
+    const radio = document.querySelector(`input[name="open-in-new-tab"][value="${openInNewTab ? 'new' : 'current'}"]`);
+    if (radio) {
+        radio.checked = true;
+    }
+}
+
+// 统一打开目的地：搜索提交与快捷链接点击共用
+function openDestination(url) {
+    if (openInNewTab) {
+        window.open(url, '_blank');
+    } else {
+        window.location.href = url;
+    }
+}
+
 // 显示时间和日期
 function updateDateTime() {
     const now = new Date();
@@ -310,6 +561,8 @@ document.addEventListener('change', function (e) {
         }
     } else if (e.target && e.target.name === 'hour-format') {
         setHourFormat(e.target.value);
+    } else if (e.target && e.target.name === 'open-in-new-tab') {
+        setOpenInNewTab(e.target.value);
     }
 });
 
@@ -319,7 +572,7 @@ function performSearch() {
 
     if (searchInput.value.trim() !== '') {
         const searchUrl = currentEngine.url + encodeURIComponent(searchInput.value.trim());
-        window.open(searchUrl, '_blank');
+        openDestination(searchUrl);
     }
 }
 
@@ -558,6 +811,15 @@ function renderLinks(links) {
         linkElement.appendChild(nameElement);
         linkElement.appendChild(deleteElement);
         quickLinksContainer.appendChild(linkElement);
+
+        // 尊重打开方式设置；修饰键点击保留浏览器原生行为
+        linkElement.addEventListener('click', function (e) {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+                return;
+            }
+            e.preventDefault();
+            openDestination(link.url);
+        });
     });
 
     // 重新添加"添加"按钮
@@ -989,12 +1251,14 @@ const settingsNavItems = {
     appearance: document.getElementById('nav-appearance'),
     links: document.getElementById('nav-links'),
     backup: document.getElementById('nav-backup'),
+    shortcuts: document.getElementById('nav-shortcuts'),
     about: document.getElementById('nav-about')
 };
 const settingsSections = {
     appearance: document.getElementById('appearance-section'),
     links: document.getElementById('links-section'),
     backup: document.getElementById('backup-section'),
+    shortcuts: document.getElementById('shortcuts-section'),
     about: document.getElementById('about-section')
 };
 const exportPanel = document.getElementById('export-panel');
@@ -1018,6 +1282,7 @@ function showSettingsSection(sectionName) {
     if (sectionName === 'appearance') {
         schemeManager.updateSchemeCards();
         updateHourFormatControl();
+        updateOpenBehaviorControl();
     } else if (sectionName === 'links') {
         renderSettingsLinks();
     } else if (sectionName === 'backup') {
@@ -1026,6 +1291,8 @@ function showSettingsSection(sectionName) {
             exportHint.textContent = `将 ${count} 个快捷链接导出为 JSON`;
         });
         importMessage.style.display = 'none';
+    } else if (sectionName === 'shortcuts') {
+        shortcutManager.renderShortcutList();
     }
 }
 
@@ -1070,6 +1337,14 @@ function initSettings() {
     if (settingsAddLink) {
         settingsAddLink.addEventListener('click', function () {
             openLinkEditor('add');
+        });
+    }
+
+    // 快捷键恢复默认
+    const shortcutsResetBtn = document.getElementById('shortcuts-reset-btn');
+    if (shortcutsResetBtn) {
+        shortcutsResetBtn.addEventListener('click', function () {
+            shortcutManager.resetShortcuts();
         });
     }
 
@@ -1208,6 +1483,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化配色方案管理器
     schemeManager.init();
+
+    // 初始化快捷键与打开方式
+    loadOpenBehavior();
+    shortcutManager.init();
 
     // 加载保存的搜索引擎选择
     storage.get('searchEngine', function (data) {

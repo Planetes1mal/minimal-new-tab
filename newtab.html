@@ -100,6 +100,8 @@
                         aria-selected="false">快捷链接</button>
                     <button id="nav-backup" class="settings-nav-item" role="tab"
                         aria-selected="false">备份</button>
+                    <button id="nav-shortcuts" class="settings-nav-item" role="tab"
+                        aria-selected="false">快捷键</button>
                     <button id="nav-about" class="settings-nav-item" role="tab"
                         aria-selected="false">关于</button>
                 </nav>
@@ -169,6 +171,18 @@
                                 <span class="segment-label">12 小时</span>
                             </label>
                         </div>
+                        <h4 class="settings-sub-title">打开方式</h4>
+                        <div class="segmented-control">
+                            <label class="segment-option">
+                                <input type="radio" name="open-in-new-tab" id="open-in-new-tab-new" value="new"
+                                    checked>
+                                <span class="segment-label">新标签页</span>
+                            </label>
+                            <label class="segment-option">
+                                <input type="radio" name="open-in-new-tab" id="open-in-new-tab-current" value="current">
+                                <span class="segment-label">当前标签页</span>
+                            </label>
+                        </div>
                     </section>
 
                     <section id="links-section" class="settings-section" role="tabpanel" hidden>
@@ -196,6 +210,13 @@
                             <input type="file" id="import-file" accept=".json" class="sr-only">
                         </div>
                         <div id="import-message" class="import-message" style="display: none;"></div>
+                    </section>
+
+                    <section id="shortcuts-section" class="settings-section" role="tabpanel" hidden>
+                        <h3 class="settings-section-title">快捷键</h3>
+                        <p class="settings-section-desc">点击任意一行录制新按键组合，输入框中不会触发。</p>
+                        <div id="shortcut-list" class="shortcut-list"></div>
+                        <button id="shortcuts-reset-btn" class="btn btn-secondary shortcut-reset">恢复默认</button>
                     </section>
 
                     <section id="about-section" class="settings-section" role="tabpanel" hidden>

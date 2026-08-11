@@ -1419,6 +1419,59 @@ textarea#import-json {    min-height: 104px;
     border-radius: 8px;
 }
 
+/* 快捷键列表 */
+.shortcut-list {
+    display: grid;
+    gap: 6px;
+}
+
+.shortcut-row {
+    min-height: 40px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--c-text-primary);
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.shortcut-row:hover {
+    background: var(--c-surface);
+}
+
+.shortcut-row.recording {
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 3px var(--c-focus-ring);
+}
+
+.shortcut-key {
+    min-width: 84px;
+    padding: 4px 10px;
+    color: var(--c-text-secondary);
+    background: var(--c-surface-muted);
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.shortcut-row.recording .shortcut-key {
+    color: var(--c-accent-strong);
+}
+
+.shortcut-reset {
+    margin-top: 12px;
+}
+
 /* 关于区 */
 .about-card {
     padding: 16px;
@@ -1472,6 +1525,7 @@ textarea#import-json {    min-height: 104px;
 .settings-nav-item:focus-visible,
 .scheme-card:focus-visible,
 .settings-link-action:focus-visible,
+.shortcut-row:focus-visible,
 .segment-option:focus-within .segment-label,
 .import-file-btn:focus-visible {
     outline: 2px solid var(--c-accent);
