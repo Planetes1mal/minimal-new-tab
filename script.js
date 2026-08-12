@@ -318,7 +318,7 @@ const shortcutManager = {
                 break;
             }
             case 'openSettings':
-                settingsModal.style.display = 'block';
+                openModal(settingsModal);
                 showSettingsSection('general');
                 break;
             case 'toggleTheme':
@@ -631,7 +631,7 @@ const engineManager = {
         if (!this.getEngines().some(e => e.id === id)) return;
         this.currentEngineId = id;
         this.saveCurrentEngine(() => {
-            updateEngineIcon();
+            updateEngineIcon(true);
             engineMenu.close();
         });
     },
@@ -644,7 +644,7 @@ const engineManager = {
         const next = engines[(currentIndex + 1) % engines.length];
         this.currentEngineId = next.id;
         this.saveCurrentEngine(() => {
-            updateEngineIcon();
+            updateEngineIcon(true);
         });
     },
 
@@ -751,8 +751,8 @@ const engineMenu = {
     }
 };
 
-// 更新搜索引擎图标与可读文本（title / aria-label）
-function updateEngineIcon() {
+// 更新搜索引擎图标与可读文本（title / aria-label）；animate 时播放切换微动画
+function updateEngineIcon(animate) {
     const engine = engineManager.getCurrentEngine();
     const engineIcon = document.getElementById('engine-icon');
     const engineLetter = document.getElementById('engine-letter');
@@ -775,6 +775,13 @@ function updateEngineIcon() {
         const label = `切换搜索引擎，当前为 ${engine.label}`;
         engineSelector.setAttribute('aria-label', label);
         engineSelector.title = label;
+    }
+
+    if (animate) {
+        const visibleIcon = engineIcon.style.display !== 'none' ? engineIcon : engineLetter;
+        visibleIcon.classList.remove('engine-icon-flash');
+        void visibleIcon.offsetWidth; // 重启动画
+        visibleIcon.classList.add('engine-icon-flash');
     }
 }
 
@@ -1021,6 +1028,14 @@ function renderLinks(links) {
     // 保存添加按钮元素
     const addButton = document.getElementById('add-link-button');
 
+    // 记录旧条目 key（url|name），新增条目播放入场动画；首次渲染跳过
+    const oldKeys = new Set(
+        Array.from(quickLinksContainer.querySelectorAll('a.quick-link[data-index]'))
+            .map(el => el.dataset.key)
+            .filter(Boolean)
+    );
+    const hadItems = oldKeys.size > 0;
+
     // 清空容器，但不包括添加按钮
     quickLinksContainer.innerHTML = '';
 
@@ -1033,6 +1048,10 @@ function renderLinks(links) {
         linkElement.title = link.url;
         linkElement.draggable = true;
         linkElement.dataset.index = index;
+        linkElement.dataset.key = `${link.url}|${link.name}`;
+        if (hadItems && !oldKeys.has(linkElement.dataset.key)) {
+            linkElement.classList.add('entry-in');
+        }
 
         const siteDot = document.createElement('span');
         siteDot.className = 'quick-link-dot';
@@ -1121,6 +1140,14 @@ function renderSettingsLinks(links) {
     // 同步设置导航的链接数量徽标
     updateLinksBadge(links.length);
 
+    // 记录旧条目 key，新增条目播放入场动画；首次渲染跳过
+    const oldKeys = new Set(
+        Array.from(list.querySelectorAll('.settings-link-row[data-index]'))
+            .map(el => el.dataset.key)
+            .filter(Boolean)
+    );
+    const hadItems = oldKeys.size > 0;
+
     list.innerHTML = '';
 
     if (!links.length) {
@@ -1137,6 +1164,10 @@ function renderSettingsLinks(links) {
         row.className = 'settings-link-row';
         row.draggable = true;
         row.dataset.index = index;
+        row.dataset.key = `${link.url}|${link.name}`;
+        if (hadItems && !oldKeys.has(row.dataset.key)) {
+            row.classList.add('entry-in');
+        }
         row.title = link.url;
 
         const dot = document.createElement('span');
@@ -1373,13 +1404,42 @@ function insertLink(fromIndex, toIndex) {
     });
 }
 
-// 删除链接
+// 删除链接：启动器与设置列表条目先播退出动画，动画结束后删除并保存
 function deleteLink(index) {
-    storage.get('quickLinks', function (data) {
-        const links = (data.quickLinks || defaultLinks).slice();
-        links.splice(index, 1);
-        saveLinks(links);
+    const launcherItem = document.querySelector(`#quick-links a.quick-link[data-index="${index}"]`);
+    const settingsRow = document.querySelector(`.settings-link-row[data-index="${index}"]`);
+    const targets = [launcherItem, settingsRow].filter(Boolean);
+
+    let executed = false;
+    const doDelete = function () {
+        if (executed) return;
+        executed = true;
+        storage.get('quickLinks', function (data) {
+            const links = (data.quickLinks || defaultLinks).slice();
+            links.splice(index, 1);
+            saveLinks(links);
+        });
+    };
+
+    if (!targets.length) {
+        doDelete();
+        return;
+    }
+
+    let remaining = targets.length;
+    targets.forEach(el => {
+        el.classList.add('leaving');
+        el.addEventListener('animationend', function handler(e) {
+            if (e.animationName !== 'leave-out') return;
+            el.removeEventListener('animationend', handler);
+            remaining -= 1;
+            if (remaining === 0) {
+                doDelete();
+            }
+        });
     });
+    // 兜底：动画事件异常时仍完成删除
+    setTimeout(doDelete, 350);
 }
 
 // 统一的保存处理函数，通过 modal.dataset.mode 区分新增/编辑模式
@@ -1438,7 +1498,7 @@ function openLinkEditor(mode, index) {
 
             modal.dataset.mode = 'edit';
             modal.dataset.editingIndex = index;
-            modal.style.display = 'block';
+            openModal(modal);
             document.getElementById('link-name').value = current.name || '';
             document.getElementById('link-url').value = current.url || '';
             const iconMode = current.iconMode || (current.icon ? 'favicon' : 'letter');
@@ -1467,7 +1527,7 @@ function openLinkEditor(mode, index) {
     // 新增模式
     modal.dataset.mode = 'add';
     delete modal.dataset.editingIndex;
-    modal.style.display = 'block';
+    openModal(modal);
     document.getElementById('link-name').value = '';
     document.getElementById('link-url').value = '';
     // 默认选择 favicon
@@ -1504,11 +1564,30 @@ addLinkButton.addEventListener('keydown', function (e) {
     }
 });
 
+// 打开弹窗：清理关闭动画残留
+function openModal(modalElement) {
+    modalElement.classList.remove('closing');
+    modalElement.style.display = 'block';
+}
+
+// 通用弹窗关闭：播放关闭动画，动画结束后再隐藏
+function animateModalClose(modalElement, afterClose) {
+    modalElement.classList.add('closing');
+    modalElement.addEventListener('animationend', function handler(e) {
+        if (e.animationName !== 'modal-fade-out') return;
+        modalElement.removeEventListener('animationend', handler);
+        modalElement.classList.remove('closing');
+        modalElement.style.display = 'none';
+        if (afterClose) afterClose();
+    });
+}
+
 // 关闭模态框
 function closeModal() {
-    modal.style.display = 'none';
-    modal.dataset.mode = 'add';
-    delete modal.dataset.editingIndex;
+    animateModalClose(modal, function () {
+        modal.dataset.mode = 'add';
+        delete modal.dataset.editingIndex;
+    });
 }
 
 closeButton.onclick = closeModal;
@@ -1661,7 +1740,7 @@ function showSettingsSection(sectionName) {
 function initSettings() {
     // 打开设置弹窗，默认停留在外观分区
     settingsBtn.addEventListener('click', function () {
-        settingsModal.style.display = 'block';
+        openModal(settingsModal);
         showSettingsSection('general');
     });
 
@@ -1891,12 +1970,13 @@ function openEngineEditor(mode, engineId) {
         nameInput.value = '';
         urlInput.value = '';
     }
-    engineModal.style.display = 'block';
+    openModal(engineModal);
 }
 
 function closeEngineModal() {
-    engineModal.style.display = 'none';
-    delete engineModal.dataset.editingId;
+    animateModalClose(engineModal, function () {
+        delete engineModal.dataset.editingId;
+    });
 }
 
 // 保存自定义引擎：名称必填，URL 必须包含 {q} 占位符
@@ -1950,7 +2030,7 @@ function initEngineSettings() {
 }
 
 function closeSettingsModal() {
-    settingsModal.style.display = 'none';
+    animateModalClose(settingsModal);
 }
 
 function getExportJson(callback) {

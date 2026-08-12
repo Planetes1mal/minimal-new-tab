@@ -542,6 +542,24 @@ body.loaded .launcher {
 
 .engine-menu.open {
     display: block;
+    animation: popover-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* 引擎图标切换微动画（初始化加载时不播放） */
+.engine-icon-flash {
+    animation: engine-icon-in 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes engine-icon-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .engine-menu-item {
@@ -838,6 +856,36 @@ body.loaded .launcher {
     opacity: 0.38;
 }
 
+/* 链接条目增删动画 */
+.quick-link.entry-in,
+.settings-link-row.entry-in {
+    animation: entry-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.quick-link.leaving,
+.settings-link-row.leaving {
+    animation: leave-out 180ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes entry-in {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes leave-out {
+    to {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+}
+
 .quick-link[draggable="true"] {
     cursor: grab;
 }
@@ -941,18 +989,40 @@ body.loaded .launcher {
     border: 1px solid var(--c-border);
     border-radius: 8px;
     box-shadow: 0 24px 60px var(--c-shadow);
-    animation: modal-enter 0.24s cubic-bezier(0.25, 1, 0.5, 1);
+    animation: popover-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-@keyframes modal-enter {
+/* 弹层关闭动画：动画结束后由 JS 设置 display: none */
+.modal.closing {
+    animation: modal-fade-out 120ms ease forwards;
+}
+
+.modal.closing .modal-content {
+    animation: popover-out 120ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes modal-fade-out {
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes popover-in {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: scale(0.97) translateY(-3px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes popover-out {
+    to {
+        opacity: 0;
+        transform: scale(0.97) translateY(-3px);
     }
 }
 
