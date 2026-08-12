@@ -1350,7 +1350,7 @@ textarea#import-json {    min-height: 104px;
     background: var(--c-surface);
 }
 
-/* 浮动高亮指示条：跟随选中/悬停项，220ms 过渡 */
+/* 浮动高亮指示条：仅跟随悬停/聚焦的导航项，移开后隐藏 */
 .settings-nav-indicator {
     position: absolute;
     left: 10px;
@@ -1365,11 +1365,6 @@ textarea#import-json {    min-height: 104px;
     transition: top 220ms cubic-bezier(0.23, 1, 0.32, 1),
         height 220ms cubic-bezier(0.23, 1, 0.32, 1),
         opacity 150ms ease;
-}
-
-.settings-nav:hover .settings-nav-indicator,
-.settings-nav.has-indicator .settings-nav-indicator {
-    opacity: 1;
 }
 
 .settings-nav-items .settings-nav-item {

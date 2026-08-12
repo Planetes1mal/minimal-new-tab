@@ -1564,7 +1564,7 @@ const importJson = document.getElementById('import-json');
 const importFile = document.getElementById('import-file');
 const importMessage = document.getElementById('import-message');
 
-// 设置导航浮动高亮指示条：跟随选中/悬停项（220ms 过渡）
+// 设置导航浮动高亮指示条：仅跟随悬停/聚焦的导航项，移开后隐藏
 const settingsNavIndicator = {
     nav: null,
     indicator: null,
@@ -1588,22 +1588,20 @@ const settingsNavIndicator = {
             item.addEventListener('mouseleave', () => {
                 if (this.hoveredId === item.id) {
                     this.hoveredId = null;
-                    this.moveToActive();
+                    this.hide();
                 }
             });
             item.addEventListener('blur', () => {
                 if (this.hoveredId === item.id) {
                     this.hoveredId = null;
-                    this.moveToActive();
+                    this.hide();
                 }
             });
         });
         this.nav.addEventListener('mouseleave', () => {
             this.hoveredId = null;
-            this.moveToActive();
+            this.hide();
         });
-
-        this.moveToActive();
     },
 
     moveTo(item) {
@@ -1611,13 +1609,11 @@ const settingsNavIndicator = {
         const itemRect = item.getBoundingClientRect();
         this.indicator.style.top = `${itemRect.top - navRect.top}px`;
         this.indicator.style.height = `${itemRect.height}px`;
+        this.indicator.style.opacity = '1';
     },
 
-    moveToActive() {
-        const active = this.nav.querySelector('.settings-nav-item.active');
-        if (active) {
-            this.moveTo(active);
-        }
+    hide() {
+        this.indicator.style.opacity = '0';
     }
 };
 
@@ -1641,7 +1637,7 @@ function showSettingsSection(sectionName) {
         settingsNavItems[key].setAttribute('aria-selected', String(active));
         settingsSections[key].hidden = !active;
     });
-    settingsNavIndicator.moveToActive();
+    settingsNavIndicator.hide();
 
     if (sectionName === 'appearance') {
         schemeManager.updateSchemeCards();
