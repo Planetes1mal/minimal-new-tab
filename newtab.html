@@ -95,18 +95,86 @@
             </div>
             <div class="settings-body">
                 <nav class="settings-nav" role="tablist" aria-label="设置分区">
-                    <button id="nav-general" class="settings-nav-item active" role="tab"
-                        aria-selected="true">通用</button>
-                    <button id="nav-appearance" class="settings-nav-item" role="tab"
-                        aria-selected="false">外观</button>
-                    <button id="nav-links" class="settings-nav-item" role="tab"
-                        aria-selected="false">快捷链接</button>
-                    <button id="nav-backup" class="settings-nav-item" role="tab"
-                        aria-selected="false">备份</button>
-                    <button id="nav-shortcuts" class="settings-nav-item" role="tab"
-                        aria-selected="false">快捷键</button>
-                    <button id="nav-about" class="settings-nav-item" role="tab"
-                        aria-selected="false">关于</button>
+                    <div class="settings-nav-group" role="presentation">
+                        <p class="settings-nav-group-title">偏好</p>
+                        <div class="settings-nav-items" role="presentation">
+                            <button id="nav-general" class="settings-nav-item active" role="tab"
+                                aria-selected="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
+                                </svg>
+                                <span>通用</span>
+                            </button>
+                            <button id="nav-appearance" class="settings-nav-item" role="tab"
+                                aria-selected="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.6-.4-1.1a1.6 1.6 0 0 1 1.6-1.6h2c3 0 5.6-2.5 5.6-5.6C21.9 6 17.5 2 12 2z"></path>
+                                    <circle cx="7.5" cy="10.5" r="0.5" fill="currentColor"></circle>
+                                    <circle cx="12" cy="7.5" r="0.5" fill="currentColor"></circle>
+                                    <circle cx="16.5" cy="10.5" r="0.5" fill="currentColor"></circle>
+                                </svg>
+                                <span>外观</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="settings-nav-group" role="presentation">
+                        <p class="settings-nav-group-title">数据</p>
+                        <div class="settings-nav-items" role="presentation">
+                            <button id="nav-links" class="settings-nav-item" role="tab"
+                                aria-selected="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path>
+                                </svg>
+                                <span>快捷链接</span>
+                                <span id="nav-links-badge" class="settings-nav-badge" hidden></span>
+                            </button>
+                            <button id="nav-backup" class="settings-nav-item" role="tab"
+                                aria-selected="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <path d="M7 10l5 5 5-5"></path>
+                                    <path d="M12 15V3"></path>
+                                </svg>
+                                <span>备份</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="settings-nav-group" role="presentation">
+                        <p class="settings-nav-group-title">工具</p>
+                        <div class="settings-nav-items" role="presentation">
+                            <button id="nav-shortcuts" class="settings-nav-item" role="tab"
+                                aria-selected="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                                    <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6"></path>
+                                </svg>
+                                <span>快捷键</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="settings-nav-group" role="presentation">
+                        <p class="settings-nav-group-title">信息</p>
+                        <div class="settings-nav-items" role="presentation">
+                            <button id="nav-about" class="settings-nav-item" role="tab"
+                                aria-selected="false">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 16v-4"></path>
+                                    <path d="M12 8h.01"></path>
+                                </svg>
+                                <span>关于</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 浮动高亮指示条 -->
+                    <span class="settings-nav-indicator" aria-hidden="true"></span>
                 </nav>
                 <div class="settings-content">
                     <section id="appearance-section" class="settings-section" role="tabpanel">

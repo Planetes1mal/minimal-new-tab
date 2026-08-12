@@ -509,10 +509,19 @@ body.loaded .launcher {
     opacity: 0.82;
 }
 
-/* 自定义搜索引擎的字母标记（内置引擎用 SVG 图标） */
+/* 自定义搜索引擎的字母圆角块（复用快捷链接「极简生成」样式语言） */
 .engine-letter {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-text-primary);
+    background: var(--c-surface-muted);
+    border-radius: 6px;
     font-family: var(--font-display);
-    font-size: 0.9rem;
+    font-size: 0.72rem;
     font-weight: 700;
     line-height: 1;
 }
@@ -1258,20 +1267,44 @@ textarea#import-json {    min-height: 104px;
 }
 
 .settings-nav {
-    flex: 0 0 148px;
+    position: relative;
+    flex: 0 0 168px;
     padding: 14px 10px 18px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 14px;
     border-right: 1px solid var(--c-border);
+}
+
+.settings-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.settings-nav-group-title {
+    padding: 0 12px 4px;
+    color: var(--c-text-secondary);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.settings-nav-items {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .settings-nav-item {
     position: relative;
     min-height: 36px;
-    padding: 0 12px 0 16px;
+    padding: 0 12px;
     display: flex;
     align-items: center;
+    gap: 8px;
     color: var(--c-text-secondary);
     background: transparent;
     border-radius: 8px;
@@ -1279,34 +1312,68 @@ textarea#import-json {    min-height: 104px;
     font-weight: 600;
     text-align: left;
     cursor: pointer;
-    transition: color 0.18s ease, background-color 0.18s ease;
+    transition: color 0.15s ease;
 }
 
-.settings-nav-item::before {
-    content: '';
-    position: absolute;
-    left: 4px;
-    top: 50%;
-    width: 3px;
-    height: 0;
-    border-radius: 2px;
-    background: var(--c-accent);
-    transform: translateY(-50%);
-    transition: height 0.18s ease;
+.settings-nav-item svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
 }
 
 .settings-nav-item:hover {
     color: var(--c-text-primary);
-    background: var(--c-surface-muted);
 }
 
 .settings-nav-item.active {
     color: var(--c-text-primary);
-    background: var(--c-accent-soft);
 }
 
-.settings-nav-item.active::before {
-    height: 16px;
+.settings-nav-badge {
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-text-secondary);
+    background: var(--c-surface-muted);
+    border-radius: 999px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.settings-nav-item.active .settings-nav-badge {
+    color: var(--c-accent-strong);
+    background: var(--c-surface);
+}
+
+/* 浮动高亮指示条：跟随选中/悬停项，220ms 过渡 */
+.settings-nav-indicator {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 0;
+    height: 36px;
+    background: var(--c-accent-soft);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: top 220ms cubic-bezier(0.23, 1, 0.32, 1),
+        height 220ms cubic-bezier(0.23, 1, 0.32, 1),
+        opacity 150ms ease;
+}
+
+.settings-nav:hover .settings-nav-indicator,
+.settings-nav.has-indicator .settings-nav-indicator {
+    opacity: 1;
+}
+
+.settings-nav-items .settings-nav-item {
+    z-index: 1;
 }
 
 .settings-content {
@@ -1715,12 +1782,35 @@ textarea#import-json {    min-height: 104px;
         overflow-x: auto;
     }
 
+    .settings-nav-group {
+        flex-direction: row;
+        gap: 4px;
+    }
+
+    .settings-nav-group-title {
+        display: none;
+    }
+
+    .settings-nav-items {
+        flex-direction: row;
+        gap: 4px;
+    }
+
     .settings-nav-item {
         flex: 1 0 auto;
         min-height: 32px;
         padding: 0 12px;
         justify-content: center;
         white-space: nowrap;
+    }
+
+    /* 窄屏用底色表达选中态（浮动指示条隐藏） */
+    .settings-nav-item.active {
+        background: var(--c-accent-soft);
+    }
+
+    .settings-nav-indicator {
+        display: none;
     }
 
     .settings-nav-item::before {

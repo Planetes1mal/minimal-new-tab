@@ -504,16 +504,27 @@ loadHourFormat();
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
-// 搜索引擎图标路径
+// 内置引擎图标（内嵌官方 SVG path，无网络请求；viewBox 统一 0 0 24 24）
 const engineIcons = {
-    google: 'M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.147-3.253 2.12-2.12 2.793-5.333 2.793-8.267 0-.8-.053-1.467-.173-2.133H12.48z',
-    bing: 'M3.3 0v24l8.4-4.6V4.4zm9.5 5.6L18.6 9l-5.8 3.4v4.8l8.2-4.7V6.2z'
+    google: '<path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.333.533 12S5.867 24 12.48 24c3.44 0 6.04-1.133 8.147-3.253 2.12-2.12 2.793-5.333 2.793-8.267 0-.8-.053-1.467-.173-2.133H12.48z" fill="currentColor"/>',
+    bing: '<path d="M3.3 0v24l8.4-4.6V4.4zm9.5 5.6L18.6 9l-5.8 3.4v4.8l8.2-4.7V6.2z" fill="currentColor"/>',
+    baidu: '<path d="M9.154 0C7.71 0 6.54 1.658 6.54 3.707c0 2.051 1.171 3.71 2.615 3.71 1.446 0 2.614-1.659 2.614-3.71C11.768 1.658 10.6 0 9.154 0zm7.025.594C14.86.58 13.347 2.589 13.2 3.927c-.187 1.745.25 3.487 2.179 3.735 1.933.25 3.175-1.806 3.422-3.364.252-1.555-.995-3.364-2.362-3.674a1.218 1.218 0 0 0-.261-.03zM3.582 5.535a2.811 2.811 0 0 0-.156.008c-2.118.19-2.428 3.24-2.428 3.24-.287 1.41.686 4.425 3.297 3.864 2.617-.561 2.262-3.68 2.183-4.362-.125-1.018-1.292-2.773-2.896-2.75zm16.534 1.753c-2.308 0-2.617 2.119-2.617 3.616 0 1.43.121 3.425 2.988 3.362 2.867-.063 2.553-3.238 2.553-3.988 0-.745-.62-2.99-2.924-2.99zm-8.264 2.478c-1.424.014-2.708.925-3.323 1.947-1.118 1.868-2.863 3.05-3.112 3.363-.25.309-3.61 2.116-2.864 5.42.746 3.301 3.365 3.237 3.365 3.237s1.93.19 4.171-.31c2.24-.495 4.17.123 4.17.123s5.233 1.748 6.665-1.616c1.43-3.364-.808-5.109-.808-5.109s-2.99-2.306-4.736-4.798c-1.072-1.665-2.348-2.268-3.528-2.257zm-2.234 3.84l1.542.024v8.197H7.758c-1.47-.291-2.055-1.292-2.13-1.462-.072-.173-.488-.976-.268-2.343.635-2.049 2.447-2.196 2.447-2.196h1.81zm3.964 2.39v3.881c.096.413.612.488.612.488h1.614v-4.343h1.689v5.782h-3.915c-1.517-.39-1.59-1.465-1.59-1.465v-4.317zm-5.458 1.147c-.66.197-.978.708-1.05.928-.076.22-.247.78-.1 1.269.294 1.095 1.248 1.144 1.248 1.144h1.37v-3.34z" fill="currentColor"/>',
+    duckduckgo: '<path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm0 .984C18.083.984 23.016 5.916 23.016 12S18.084 23.016 12 23.016.984 18.084.984 12C.984 5.917 5.916.984 12 .984zm0 .938C6.434 1.922 1.922 6.434 1.922 12c0 4.437 2.867 8.205 6.85 9.55-.237-.82-.776-2.753-1.6-6.052-1.184-4.741-2.064-8.606 2.379-9.813.047-.011.064-.064.03-.093-.514-.467-1.382-.548-2.233-.38a.06.06 0 0 1-.07-.058c0-.011 0-.023.011-.035.205-.286.572-.507.822-.64a1.843 1.843 0 0 0-.607-.335c-.059-.022-.059-.12-.006-.144.006-.006.012-.012.024-.012 1.749-.233 3.586.292 4.49 1.448.011.011.023.017.035.023 2.968.635 3.509 4.837 3.328 5.998a9.607 9.607 0 0 0 2.346-.576c.746-.286 1.008-.222 1.101-.053.1.193-.018.513-.28.81-.496.567-1.393 1.01-2.974 1.137-.546.044-1.029.024-1.445.006-.789-.035-1.339-.059-1.633.39-.192.298-.041.998 1.487 1.22 1.09.157 2.078.047 2.798-.034.643-.07 1.073-.118 1.172.069.21.402-.996 1.207-3.066 1.224-.158 0-.315-.006-.467-.011-1.283-.065-2.227-.414-2.816-.735a.094.094 0 0 1-.035-.017c-.105-.059-.31.045-.188.267.07.134.444.478 1.004.776-.058.466.087 1.184.338 2l.088-.016c.041-.009.087-.019.134-.025.507-.082.775.012.926.175.717-.536 1.913-1.294 2.03-1.154.583.694.66 2.332.53 2.99-.004.012-.017.024-.04.035-.274.117-1.783-.296-1.783-.511-.059-1.075-.26-1.173-.493-1.225h-.156c.006.006.012.018.018.03l.052.12c.093.257.24 1.063.13 1.26-.112.199-.835.297-1.284.303-.443.006-.543-.158-.637-.408-.07-.204-.103-.675-.103-.95a.857.857 0 0 1 .012-.216c-.134.058-.333.193-.397.281-.017.262-.017.682.123 1.149.07.221-1.518 1.164-1.74.99-.227-.181-.634-1.952-.459-2.67-.187.017-.338.075-.42.191-.367.508.093 2.933.582 3.248.257.169 1.54-.553 2.176-1.095.105.145.305.158.553.158.326-.012.782-.06 1.103-.158.192.45.423.972.613 1.388 4.47-1.032 7.803-5.037 7.803-9.82 0-5.566-4.512-10.078-10.078-10.078zm1.791 5.646c-.42 0-.678.146-.795.332-.023.047.047.094.094.07.14-.075.357-.161.701-.156.328.006.516.09.67.159l.023.01c.041.017.088-.03.059-.065-.134-.18-.332-.35-.752-.35zm-5.078.198a1.24 1.24 0 0 0-.522.082c-.454.169-.67.526-.67.76 0 .051.112.057.141.011.081-.123.21-.31.617-.478.408-.17.73-.146.951-.094.047.012.083-.041.041-.07a.989.989 0 0 0-.558-.211zm5.434 1.423a.651.651 0 0 0-.655.647.652.652 0 0 0 1.307 0 .646.646 0 0 0-.652-.647zm.283.262h.008a.17.17 0 0 1 .17.17c0 .093-.077.17-.17.17a.17.17 0 0 1-.17-.17c0-.09.072-.165.162-.17zm-5.358.076a.752.752 0 0 0-.758.758c0 .42.338.758.758.758s.758-.337.758-.758a.756.756 0 0 0-.758-.758zm.328.303h.01c.112 0 .2.089.2.2 0 .11-.088.197-.2.197a.195.195 0 0 1-.197-.198c0-.107.082-.194.187-.199z" fill="currentColor"/>',
+    ecosia: '<path d="M15.198 6.818H8.786v10.48h6.412v-3.342h-3.98v-1.262H13.8V11.42h-2.584v-1.261h3.981zM11.972.06A12.003 12.003 0 0 0 0 12.064a12.003 12.003 0 0 0 10.083 11.848c.068-1.277.196-2.723.434-3.652v-.014c0-.005 0-.007-.01-.012 0-.005-.01-.007-.012-.009 0-.002-.01-.002-.014-.002h-.356c-2.307 0-5.943-.333-6.916-3.45-1.458-4.642 2.025-6.314 3.484-4.97 0 .004.012.008.019.008.01 0 .014 0 .02-.005.01-.005.013-.009.015-.016v-.021c-.322-.945-2.148-6.867 2.64-8.496 4.08-1.369 8.07 1.491 7.461 5.265v.017c0 .007.01.012.012.014 0 .002.012.005.016.005 0 0 .012-.002.016-.005.298-.246 1.603-1.186 2.919-.148 1.247.982.844 3.73-1.627 5.003-.01.002-.014.007-.02.014v.023c0 .01.01.014.015.02.01.004.016.004.023.001 1.596-.239 4.316 1.193 2.11 4.375-1.447 2.1-4.71 2.365-6.168 2.365h-1.071s-.01 0-.012.002c0 .002-.01.005-.012.007 0 .002 0 .005-.01.009v.012c-.021.751.331 2.304.693 3.688A12.003 12.003 0 0 0 24 12.063 12.003 12.003 0 0 0 11.997.06a12.003 12.003 0 0 0-.03 0z" fill="currentColor"/>',
+    brave: '<path d="M15.68 0l2.096 2.38s1.84-.512 2.709.358c.868.87 1.584 1.638 1.584 1.638l-.562 1.381.715 2.047s-2.104 7.98-2.35 8.955c-.486 1.919-.818 2.66-2.198 3.633-1.38.972-3.884 2.66-4.293 2.916-.409.256-.92.692-1.38.692-.46 0-.97-.436-1.38-.692a185.796 185.796 0 01-4.293-2.916c-1.38-.973-1.712-1.714-2.197-3.633-.247-.975-2.351-8.955-2.351-8.955l.715-2.047-.562-1.381s.716-.768 1.585-1.638c.868-.87 2.708-.358 2.708-.358L8.321 0h7.36zm-3.679 14.936c-.14 0-1.038.317-1.758.69-.72.373-1.242.637-1.409.742-.167.104-.065.301.087.409.152.107 2.194 1.69 2.393 1.866.198.175.489.464.687.464.198 0 .49-.29.688-.464.198-.175 2.24-1.759 2.392-1.866.152-.108.254-.305.087-.41-.167-.104-.689-.368-1.41-.741-.72-.373-1.617-.69-1.757-.69zm0-11.278s-.409.001-1.022.206-1.278.46-1.584.46c-.307 0-2.581-.434-2.581-.434S4.119 7.152 4.119 7.849c0 .697.339.881.68 1.243l2.02 2.149c.192.203.59.511.356 1.066-.235.555-.58 1.26-.196 1.977.384.716 1.042 1.194 1.464 1.115.421-.08 1.412-.598 1.776-.834.364-.237 1.518-1.19 1.518-1.554 0-.365-1.193-1.02-1.413-1.168-.22-.15-1.226-.725-1.247-.95-.02-.227-.012-.293.284-.851.297-.559.831-1.304.742-1.8-.089-.495-.95-.753-1.565-.986-.615-.232-1.799-.671-1.947-.74-.148-.068-.11-.133.339-.175.448-.043 1.719-.212 2.292-.052.573.16 1.552.403 1.632.532.079.13.149.134.067.579-.081.445-.5 2.581-.541 2.96-.04.38-.12.63.288.724.409.094 1.097.256 1.333.256s.924-.162 1.333-.256c.408-.093.329-.344.288-.723-.04-.38-.46-2.516-.541-2.961-.082-.445-.012-.45.067-.579.08-.129 1.059-.372 1.632-.532.573-.16 1.845.009 2.292.052.449.042.487.107.339.175-.148.069-1.332.508-1.947.74-.615.233-1.476.49-1.565.986-.09.496.445 1.241.742 1.8.297.558.304.624.284.85-.02.226-1.026.802-1.247.95-.22.15-1.413.804-1.413 1.169 0 .364 1.154 1.317 1.518 1.554.364.236 1.355.755 1.776.834.422.079 1.08-.4 1.464-1.115.384-.716.039-1.422-.195-1.977-.235-.555.163-.863.355-1.066l2.02-2.149c.341-.362.68-.546.68-1.243 0-.697-2.695-3.96-2.695-3.96s-2.274.436-2.58.436c-.307 0-.972-.256-1.585-.461-.613-.205-1.022-.206-1.022-.206z" fill="currentColor"/>',
+    // Yandex 的 viewBox 从 -5.5 开始，用 translate 归一化到 0 0 24 24
+    yandex: '<g transform="translate(5.5 0)"><path d="m5.2 24v-7.786l-5.2-13.964h2.616l3.834 10.767 4.41-13.018h2.405l-5.658 16.303v7.697z" fill="currentColor"/></g>'
 };
 
 // 内置搜索引擎（URL 统一使用 {q} 占位符）
 const BUILTIN_ENGINES = [
     { id: 'google', label: 'Google', url: 'https://www.google.com/search?q={q}' },
-    { id: 'bing', label: 'Bing', url: 'https://www.bing.com/search?q={q}' }
+    { id: 'bing', label: 'Bing', url: 'https://www.bing.com/search?q={q}' },
+    { id: 'baidu', label: '百度', url: 'https://www.baidu.com/s?wd={q}' },
+    { id: 'duckduckgo', label: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={q}' },
+    { id: 'ecosia', label: 'Ecosia', url: 'https://www.ecosia.org/search?q={q}' },
+    { id: 'brave', label: 'Brave', url: 'https://search.brave.com/search?q={q}' },
+    { id: 'yandex', label: 'Yandex', url: 'https://yandex.com/search/?text={q}' }
 ];
 
 // 搜索引擎管理：内置 + 自定义，启用列表，当前引擎（含旧数据兼容）
@@ -535,56 +546,84 @@ const engineManager = {
         return this.getEngines().find(e => e.id === this.currentEngineId) || this.getEngines()[0];
     },
 
-    // 加载配置：searchEngines（自定义 + 启用）+ searchEngine（当前，兼容旧 URL）
+    // 加载配置并迁移旧数据：
+    // 新结构 customEngines + enabledEngines 两键，searchEngine 存 id；
+    // 旧结构 searchEngines 单键（{custom, enabled}）与 URL 值自动迁移并清理。
     load(callback) {
-        storage.get(['searchEngines', 'searchEngine'], (data) => {
-            const config = data.searchEngines || {};
-            this.customEngines = Array.isArray(config.custom) ? config.custom : [];
+        storage.get(['customEngines', 'enabledEngines', 'searchEngine', 'searchEngines'], (data) => {
+            let migrated = false;
+
+            // 自定义引擎：优先新键，回退旧单键
+            this.customEngines = Array.isArray(data.customEngines)
+                ? data.customEngines
+                : (data.searchEngines && Array.isArray(data.searchEngines.custom)
+                    ? data.searchEngines.custom
+                    : []);
+            if (!Array.isArray(data.customEngines) && data.searchEngines) {
+                migrated = true;
+            }
 
             const validIds = new Set([
                 ...BUILTIN_ENGINES.map(e => e.id),
                 ...this.customEngines.map(e => e.id)
             ]);
-            const savedEnabled = Array.isArray(config.enabled) && config.enabled.length
-                ? config.enabled
-                : ['google', 'bing'];
+
+            // 启用列表：优先新键，回退旧单键，再回退默认
+            let savedEnabled = Array.isArray(data.enabledEngines) && data.enabledEngines.length
+                ? data.enabledEngines
+                : (data.searchEngines && Array.isArray(data.searchEngines.enabled) &&
+                    data.searchEngines.enabled.length
+                    ? data.searchEngines.enabled
+                    : ['google', 'bing']);
+            if (!Array.isArray(data.enabledEngines) && data.searchEngines) {
+                migrated = true;
+            }
             this.enabledIds = savedEnabled.filter(id => validIds.has(id));
             if (!this.enabledIds.length) {
                 this.enabledIds = ['google'];
             }
 
-            // 当前引擎：优先按 URL 匹配（旧数据无 {q}，去掉占位符后比较）
-            const savedUrl = data.searchEngine;
-            if (savedUrl) {
-                const normalized = savedUrl.replace('{q}', '');
-                const match = this.getEngines().find(e => e.url.replace('{q}', '') === normalized);
-                if (match) {
-                    this.currentEngineId = match.id;
+            // 当前引擎：searchEngine 存 id 或旧 URL（映射回 id）
+            const savedEngine = data.searchEngine;
+            if (typeof savedEngine === 'string' && savedEngine) {
+                if (validIds.has(savedEngine)) {
+                    this.currentEngineId = savedEngine;
+                } else {
+                    // 旧数据：URL → id
+                    const normalized = savedEngine.replace('{q}', '');
+                    const match = this.getEngines().find(e => e.url.replace('{q}', '') === normalized);
+                    if (match) {
+                        this.currentEngineId = match.id;
+                        migrated = true;
+                    }
                 }
             }
             if (!this.getEngines().some(e => e.id === this.currentEngineId)) {
                 this.currentEngineId = this.getEngines()[0].id;
             }
 
+            // 有迁移时写回新结构并清理旧键
+            if (migrated) {
+                this.save();
+                this.saveCurrentEngine();
+                storage.remove('searchEngines');
+            }
+
             callback && callback();
         });
     },
 
-    // 保存引擎配置（启用列表 + 自定义引擎）
+    // 保存引擎配置（customEngines + enabledEngines 两键）
     save(callback) {
         storage.set({
-            searchEngines: { custom: this.customEngines, enabled: this.enabledIds }
+            customEngines: this.customEngines,
+            enabledEngines: this.enabledIds
         }, callback);
     },
 
-    // 保存当前引擎（沿用 searchEngine 键，值存 URL 模板）
+    // 保存当前引擎（searchEngine 键存引擎 id）
     saveCurrentEngine(callback) {
-        const engine = this.getCurrentEngine();
-        if (engine) {
-            storage.set({ searchEngine: engine.url }, callback);
-        } else if (callback) {
-            callback();
-        }
+        storage.set({ searchEngine: this.currentEngineId }, callback);
     },
 
     // 选择引擎
@@ -670,17 +709,14 @@ const engineMenu = {
         });
     },
 
-    // 引擎图标：内置用 SVG path，自定义用首字母标记
+    // 引擎图标：内置用内嵌 SVG 标记，自定义用首字母圆角块
     buildIcon(engine) {
-        const iconPath = engineIcons[engine.id];
-        if (iconPath) {
+        const iconMarkup = engineIcons[engine.id];
+        if (iconMarkup) {
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('viewBox', '0 0 24 24');
             svg.setAttribute('aria-hidden', 'true');
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', iconPath);
-            path.setAttribute('fill', 'currentColor');
-            svg.appendChild(path);
+            svg.innerHTML = iconMarkup;
             return svg;
         }
         const letter = document.createElement('span');
@@ -720,19 +756,15 @@ function updateEngineIcon() {
     const engine = engineManager.getCurrentEngine();
     const engineIcon = document.getElementById('engine-icon');
     const engineLetter = document.getElementById('engine-letter');
-    const iconPath = engineIcons[engine.id];
+    const iconMarkup = engineIcons[engine.id];
 
-    if (iconPath) {
-        // 内置引擎：SVG path
+    if (iconMarkup) {
+        // 内置引擎：内嵌 SVG 标记
         engineLetter.style.display = 'none';
         engineIcon.style.display = '';
-        engineIcon.innerHTML = '';
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', iconPath);
-        path.setAttribute('fill', 'currentColor');
-        engineIcon.appendChild(path);
+        engineIcon.innerHTML = iconMarkup;
     } else {
-        // 自定义引擎：首字母标记
+        // 自定义引擎：首字母圆角块
         engineIcon.style.display = 'none';
         engineLetter.style.display = '';
         engineLetter.textContent = (engine.label || '?').charAt(0).toUpperCase();
@@ -913,6 +945,22 @@ const storage = {
                 if (callback) callback();
             }
         }
+    },
+
+    // 删除键（迁移时清理旧数据）
+    remove: function (key, callback) {
+        if (typeof chrome !== 'undefined' && chrome.storage) {
+            // chrome.storage 用 undefined 值删除键
+            chrome.storage.sync.set({ [key]: undefined }, callback);
+        } else {
+            try {
+                localStorage.removeItem(key);
+                if (callback) callback();
+            } catch (e) {
+                console.error('Error removing data from localStorage', e);
+                if (callback) callback();
+            }
+        }
     }
 };
 
@@ -1069,6 +1117,9 @@ function renderSettingsLinks(links) {
         });
         return;
     }
+
+    // 同步设置导航的链接数量徽标
+    updateLinksBadge(links.length);
 
     list.innerHTML = '';
 
@@ -1513,7 +1564,76 @@ const importJson = document.getElementById('import-json');
 const importFile = document.getElementById('import-file');
 const importMessage = document.getElementById('import-message');
 
-// 切换设置分区：外观 / 快捷链接 / 备份 / 关于
+// 设置导航浮动高亮指示条：跟随选中/悬停项（220ms 过渡）
+const settingsNavIndicator = {
+    nav: null,
+    indicator: null,
+    hoveredId: null,
+
+    init() {
+        this.nav = document.querySelector('.settings-nav');
+        this.indicator = this.nav.querySelector('.settings-nav-indicator');
+        if (!this.nav || !this.indicator) return;
+
+        const items = this.nav.querySelectorAll('.settings-nav-item');
+        items.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                this.hoveredId = item.id;
+                this.moveTo(item);
+            });
+            item.addEventListener('focus', () => {
+                this.hoveredId = item.id;
+                this.moveTo(item);
+            });
+            item.addEventListener('mouseleave', () => {
+                if (this.hoveredId === item.id) {
+                    this.hoveredId = null;
+                    this.moveToActive();
+                }
+            });
+            item.addEventListener('blur', () => {
+                if (this.hoveredId === item.id) {
+                    this.hoveredId = null;
+                    this.moveToActive();
+                }
+            });
+        });
+        this.nav.addEventListener('mouseleave', () => {
+            this.hoveredId = null;
+            this.moveToActive();
+        });
+
+        this.moveToActive();
+    },
+
+    moveTo(item) {
+        const navRect = this.nav.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        this.indicator.style.top = `${itemRect.top - navRect.top}px`;
+        this.indicator.style.height = `${itemRect.height}px`;
+    },
+
+    moveToActive() {
+        const active = this.nav.querySelector('.settings-nav-item.active');
+        if (active) {
+            this.moveTo(active);
+        }
+    }
+};
+
+// 更新设置导航的快捷链接数量徽标
+function updateLinksBadge(count) {
+    const badge = document.getElementById('nav-links-badge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.hidden = false;
+    } else {
+        badge.hidden = true;
+    }
+}
+
+// 切换设置分区：通用 / 外观 / 快捷链接 / 备份 / 快捷键 / 关于
 function showSettingsSection(sectionName) {
     Object.keys(settingsNavItems).forEach(key => {
         const active = key === sectionName;
@@ -1521,6 +1641,7 @@ function showSettingsSection(sectionName) {
         settingsNavItems[key].setAttribute('aria-selected', String(active));
         settingsSections[key].hidden = !active;
     });
+    settingsNavIndicator.moveToActive();
 
     if (sectionName === 'appearance') {
         schemeManager.updateSchemeCards();
@@ -1576,6 +1697,9 @@ function initSettings() {
     // 导出：复制到剪贴板 / 下载文件
     exportClipboardBtn.addEventListener('click', exportToClipboard);
     exportFileBtn.addEventListener('click', exportToFile);
+
+    // 设置导航浮动指示条
+    settingsNavIndicator.init();
 
     // 设置页快捷链接列表的添加入口
     const settingsAddLink = document.getElementById('settings-add-link');
