@@ -49,3 +49,10 @@ localStorage），备份 JSON 格式为 `{version: 1, links: [...]}`。
 链接与搜索结果的打开位置：新标签页（默认，`window.open`）或当前标签页
 （`location.href`）。持久化在 `openInNewTab` 键。
 
+### 搜索引擎 (search engine)
+搜索提交使用的服务。内置 Google / Bing，可添加自定义引擎（名称 + 含 `{q}`
+占位符的 URL 模板）。启用列表与自定义引擎持久化在 `searchEngines` 键
+（`{custom, enabled}`），当前引擎沿用 `searchEngine` 键（存 URL）。
+切换交互按启用数分档：启用 2 个时点击循环切换，启用 3 个及以上时点击
+弹出引擎菜单。Bing 在 CN 环境由网络层自动跳转 `cn.bing.com`，代码不干预。
+

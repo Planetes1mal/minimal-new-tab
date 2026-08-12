@@ -510,41 +510,250 @@ const engineIcons = {
     bing: 'M3.3 0v24l8.4-4.6V4.4zm9.5 5.6L18.6 9l-5.8 3.4v4.8l8.2-4.7V6.2z'
 };
 
-// 搜索引擎配置
-const engines = [
-    { name: 'google', label: 'Google', url: 'https://www.google.com/search?q=' },
-    { name: 'bing', label: 'Bing', url: 'https://www.bing.com/search?q=' }
+// 内置搜索引擎（URL 统一使用 {q} 占位符）
+const BUILTIN_ENGINES = [
+    { id: 'google', label: 'Google', url: 'https://www.google.com/search?q={q}' },
+    { id: 'bing', label: 'Bing', url: 'https://www.bing.com/search?q={q}' }
 ];
 
-// 当前搜索引擎索引
-let currentEngineIndex = 0;
+// 搜索引擎管理：内置 + 自定义，启用列表，当前引擎（含旧数据兼容）
+const engineManager = {
+    customEngines: [],          // [{ id, label, url }]
+    enabledIds: ['google', 'bing'], // 启用顺序（内置在前，自定义按创建顺序）
+    currentEngineId: 'google',
 
-// 更新搜索引擎图标，并同步按钮的可读文本（title / aria-label）
+    // 当前生效的引擎列表（启用过滤）
+    getEngines() {
+        const all = [
+            ...BUILTIN_ENGINES,
+            ...this.customEngines.map(e => ({ ...e, custom: true }))
+        ];
+        return all.filter(e => this.enabledIds.includes(e.id));
+    },
+
+    getCurrentEngine() {
+        return this.getEngines().find(e => e.id === this.currentEngineId) || this.getEngines()[0];
+    },
+
+    // 加载配置：searchEngines（自定义 + 启用）+ searchEngine（当前，兼容旧 URL）
+    load(callback) {
+        storage.get(['searchEngines', 'searchEngine'], (data) => {
+            const config = data.searchEngines || {};
+            this.customEngines = Array.isArray(config.custom) ? config.custom : [];
+
+            const validIds = new Set([
+                ...BUILTIN_ENGINES.map(e => e.id),
+                ...this.customEngines.map(e => e.id)
+            ]);
+            const savedEnabled = Array.isArray(config.enabled) && config.enabled.length
+                ? config.enabled
+                : ['google', 'bing'];
+            this.enabledIds = savedEnabled.filter(id => validIds.has(id));
+            if (!this.enabledIds.length) {
+                this.enabledIds = ['google'];
+            }
+
+            // 当前引擎：优先按 URL 匹配（旧数据无 {q}，去掉占位符后比较）
+            const savedUrl = data.searchEngine;
+            if (savedUrl) {
+                const normalized = savedUrl.replace('{q}', '');
+                const match = this.getEngines().find(e => e.url.replace('{q}', '') === normalized);
+                if (match) {
+                    this.currentEngineId = match.id;
+                }
+            }
+            if (!this.getEngines().some(e => e.id === this.currentEngineId)) {
+                this.currentEngineId = this.getEngines()[0].id;
+            }
+
+            callback && callback();
+        });
+    },
+
+    // 保存引擎配置（启用列表 + 自定义引擎）
+    save(callback) {
+        storage.set({
+            searchEngines: { custom: this.customEngines, enabled: this.enabledIds }
+        }, callback);
+    },
+
+    // 保存当前引擎（沿用 searchEngine 键，值存 URL 模板）
+    saveCurrentEngine(callback) {
+        const engine = this.getCurrentEngine();
+        if (engine) {
+            storage.set({ searchEngine: engine.url }, callback);
+        } else if (callback) {
+            callback();
+        }
+    },
+
+    // 选择引擎
+    setEngine(id) {
+        if (!this.getEngines().some(e => e.id === id)) return;
+        this.currentEngineId = id;
+        this.saveCurrentEngine(() => {
+            updateEngineIcon();
+            engineMenu.close();
+        });
+    },
+
+    // 循环切换到下一个启用引擎（≤2 个时使用）
+    cycleEngine() {
+        const engines = this.getEngines();
+        if (engines.length < 2) return;
+        const currentIndex = engines.findIndex(e => e.id === this.currentEngineId);
+        const next = engines[(currentIndex + 1) % engines.length];
+        this.currentEngineId = next.id;
+        this.saveCurrentEngine(() => {
+            updateEngineIcon();
+        });
+    },
+
+    // 生成自定义引擎 id
+    newCustomId() {
+        return `custom-${Date.now().toString(36)}`;
+    }
+};
+
+// 引擎菜单浮层（启用 3 个及以上引擎时使用）
+const engineMenu = {
+    element: null,
+
+    init() {
+        this.element = document.createElement('div');
+        this.element.className = 'engine-menu';
+        this.element.setAttribute('role', 'menu');
+        this.element.setAttribute('aria-label', '选择搜索引擎');
+        document.body.appendChild(this.element);
+
+        document.addEventListener('click', (e) => {
+            if (this.element.classList.contains('open') &&
+                !this.element.contains(e.target) &&
+                !document.getElementById('engine-selector').contains(e.target)) {
+                this.close();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.element.classList.contains('open')) {
+                this.close();
+            }
+        });
+    },
+
+    render() {
+        const engines = engineManager.getEngines();
+        this.element.innerHTML = '';
+        engines.forEach((engine, index) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'engine-menu-item' +
+                (engine.id === engineManager.currentEngineId ? ' active' : '');
+            item.setAttribute('role', 'menuitem');
+            item.setAttribute('aria-label', engine.label);
+            item.setAttribute('aria-current', String(engine.id === engineManager.currentEngineId));
+            item.appendChild(this.buildIcon(engine));
+            const name = document.createElement('span');
+            name.textContent = engine.label;
+            item.appendChild(name);
+            item.addEventListener('click', () => {
+                engineManager.setEngine(engine.id);
+            });
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    const offset = e.key === 'ArrowRight' ? 1 : -1;
+                    const nextIndex = (index + offset + engines.length) % engines.length;
+                    this.element.querySelectorAll('.engine-menu-item')[nextIndex].focus();
+                }
+            });
+            this.element.appendChild(item);
+        });
+    },
+
+    // 引擎图标：内置用 SVG path，自定义用首字母标记
+    buildIcon(engine) {
+        const iconPath = engineIcons[engine.id];
+        if (iconPath) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('aria-hidden', 'true');
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', iconPath);
+            path.setAttribute('fill', 'currentColor');
+            svg.appendChild(path);
+            return svg;
+        }
+        const letter = document.createElement('span');
+        letter.className = 'engine-letter';
+        letter.setAttribute('aria-hidden', 'true');
+        letter.textContent = (engine.label || '?').charAt(0).toUpperCase();
+        return letter;
+    },
+
+    // 在引擎按钮下方打开菜单
+    open() {
+        this.render();
+        const selector = document.getElementById('engine-selector');
+        const rect = selector.getBoundingClientRect();
+        this.element.classList.add('open');
+        this.element.style.left = `${rect.left}px`;
+        this.element.style.top = `${rect.bottom + 6}px`;
+        const firstItem = this.element.querySelector('.engine-menu-item');
+        if (firstItem) firstItem.focus();
+    },
+
+    close() {
+        this.element.classList.remove('open');
+    },
+
+    toggle() {
+        if (this.element.classList.contains('open')) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+};
+
+// 更新搜索引擎图标与可读文本（title / aria-label）
 function updateEngineIcon() {
+    const engine = engineManager.getCurrentEngine();
     const engineIcon = document.getElementById('engine-icon');
-    const currentEngine = engines[currentEngineIndex];
-    const iconPath = engineIcons[currentEngine.name];
+    const engineLetter = document.getElementById('engine-letter');
+    const iconPath = engineIcons[engine.id];
 
-    engineIcon.innerHTML = '';
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', iconPath);
-    path.setAttribute('fill', 'currentColor');
-    engineIcon.appendChild(path);
+    if (iconPath) {
+        // 内置引擎：SVG path
+        engineLetter.style.display = 'none';
+        engineIcon.style.display = '';
+        engineIcon.innerHTML = '';
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', iconPath);
+        path.setAttribute('fill', 'currentColor');
+        engineIcon.appendChild(path);
+    } else {
+        // 自定义引擎：首字母标记
+        engineIcon.style.display = 'none';
+        engineLetter.style.display = '';
+        engineLetter.textContent = (engine.label || '?').charAt(0).toUpperCase();
+    }
 
     const engineSelector = document.getElementById('engine-selector');
     if (engineSelector) {
-        const label = `切换搜索引擎，当前为 ${currentEngine.label}`;
+        const label = `切换搜索引擎，当前为 ${engine.label}`;
         engineSelector.setAttribute('aria-label', label);
         engineSelector.title = label;
     }
 }
 
-// 切换搜索引擎
-function toggleEngine() {
-    currentEngineIndex = (currentEngineIndex + 1) % engines.length;
-    storage.set({ 'searchEngine': engines[currentEngineIndex].url }, function () {
-        updateEngineIcon();
-    });
+// 引擎按钮点击：≤2 个启用引擎时循环切换，3+ 个时弹出菜单
+function handleEngineClick() {
+    const engines = engineManager.getEngines();
+    if (engines.length <= 2) {
+        engineManager.cycleEngine();
+    } else {
+        engineMenu.toggle();
+    }
 }
 
 // 处理搜索功能：表单提交覆盖回车键与搜索按钮两种提交方式
@@ -573,10 +782,10 @@ document.addEventListener('change', function (e) {
 
 function performSearch() {
     const searchInput = document.getElementById('search-input');
-    const currentEngine = engines[currentEngineIndex];
+    const currentEngine = engineManager.getCurrentEngine();
 
     if (searchInput.value.trim() !== '') {
-        const searchUrl = currentEngine.url + encodeURIComponent(searchInput.value.trim());
+        const searchUrl = currentEngine.url.replace('{q}', encodeURIComponent(searchInput.value.trim()));
         openDestination(searchUrl);
     }
 }
@@ -1318,6 +1527,7 @@ function showSettingsSection(sectionName) {
     } else if (sectionName === 'general') {
         updateHourFormatControl();
         updateOpenBehaviorControl();
+        renderEngineSettings();
     } else if (sectionName === 'links') {
         renderSettingsLinks();
     } else if (sectionName === 'backup') {
@@ -1374,6 +1584,9 @@ function initSettings() {
             openLinkEditor('add');
         });
     }
+
+    // 搜索引擎设置（添加/编辑弹窗）
+    initEngineSettings();
 
     // 快捷键恢复默认
     const shortcutsResetBtn = document.getElementById('shortcuts-reset-btn');
@@ -1443,6 +1656,177 @@ function loadAboutVersion() {
         .catch(function () {
             versionEl.textContent = '';
         });
+}
+
+// 设置区：渲染引擎启用列表（内置固定在前，自定义按创建顺序）
+function renderEngineSettings() {
+    const list = document.getElementById('engine-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const all = [
+        ...BUILTIN_ENGINES.map(e => ({ ...e, custom: false })),
+        ...engineManager.customEngines.map(e => ({ ...e, custom: true }))
+    ];
+
+    all.forEach(engine => {
+        const row = document.createElement('label');
+        row.className = 'engine-row';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = engineManager.enabledIds.includes(engine.id);
+        checkbox.setAttribute('aria-label', `启用 ${engine.label}`);
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                engineManager.enabledIds.push(engine.id);
+            } else {
+                // 至少保留一个启用引擎
+                if (engineManager.enabledIds.length <= 1) {
+                    checkbox.checked = true;
+                    return;
+                }
+                engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engine.id);
+                if (engineManager.currentEngineId === engine.id) {
+                    engineManager.currentEngineId = engineManager.getEngines()[0].id;
+                }
+            }
+            engineManager.save(() => {
+                updateEngineIcon();
+                renderEngineSettings();
+            });
+        });
+
+        const label = document.createElement('span');
+        label.className = 'engine-label';
+        label.textContent = engine.label;
+
+        const urlPreview = document.createElement('span');
+        urlPreview.className = 'engine-url-preview';
+        urlPreview.textContent = engine.url.replace('{q}', '…');
+
+        row.appendChild(checkbox);
+        row.appendChild(label);
+        row.appendChild(urlPreview);
+
+        if (engine.custom) {
+            const actions = document.createElement('span');
+            actions.className = 'settings-link-actions';
+
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'settings-link-action edit';
+            editButton.setAttribute('aria-label', `编辑 ${engine.label}`);
+            editButton.innerHTML = EDIT_ICON_SVG;
+            editButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openEngineEditor('edit', engine.id);
+            });
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'settings-link-action delete';
+            deleteButton.setAttribute('aria-label', `删除 ${engine.label}`);
+            deleteButton.innerHTML = DELETE_ICON_SVG;
+            deleteButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                engineManager.customEngines = engineManager.customEngines.filter(c => c.id !== engine.id);
+                engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engine.id);
+                if (!engineManager.getEngines().some(en => en.id === engineManager.currentEngineId)) {
+                    engineManager.currentEngineId = engineManager.getEngines()[0].id;
+                }
+                engineManager.save(() => {
+                    updateEngineIcon();
+                    renderEngineSettings();
+                });
+            });
+
+            actions.appendChild(editButton);
+            actions.appendChild(deleteButton);
+            row.appendChild(actions);
+        }
+
+        list.appendChild(row);
+    });
+}
+
+// 引擎编辑弹窗：mode = 'add' | 'edit'
+const engineModal = document.getElementById('engine-modal');
+
+function openEngineEditor(mode, engineId) {
+    engineModal.dataset.mode = mode;
+    const nameInput = document.getElementById('engine-name');
+    const urlInput = document.getElementById('engine-url');
+
+    if (mode === 'edit') {
+        const engine = engineManager.customEngines.find(c => c.id === engineId);
+        if (!engine) return;
+        engineModal.dataset.editingId = engineId;
+        nameInput.value = engine.label;
+        urlInput.value = engine.url;
+    } else {
+        delete engineModal.dataset.editingId;
+        nameInput.value = '';
+        urlInput.value = '';
+    }
+    engineModal.style.display = 'block';
+}
+
+function closeEngineModal() {
+    engineModal.style.display = 'none';
+    delete engineModal.dataset.editingId;
+}
+
+// 保存自定义引擎：名称必填，URL 必须包含 {q} 占位符
+function handleSaveEngine() {
+    const name = document.getElementById('engine-name').value.trim();
+    const url = document.getElementById('engine-url').value.trim();
+
+    if (!name) {
+        document.getElementById('engine-name').focus();
+        return;
+    }
+    if (!url || !url.includes('{q}')) {
+        document.getElementById('engine-url').focus();
+        return;
+    }
+
+    if (engineModal.dataset.mode === 'edit') {
+        const engine = engineManager.customEngines.find(c => c.id === engineModal.dataset.editingId);
+        if (engine) {
+            engine.label = name;
+            engine.url = url;
+        }
+    } else {
+        engineManager.customEngines.push({ id: engineManager.newCustomId(), label: name, url });
+        // 新引擎默认启用并设为当前
+        engineManager.enabledIds.push(engineManager.customEngines[engineManager.customEngines.length - 1].id);
+        engineManager.currentEngineId = engineManager.customEngines[engineManager.customEngines.length - 1].id;
+    }
+
+    engineManager.save(() => {
+        updateEngineIcon();
+        renderEngineSettings();
+    });
+    closeEngineModal();
+}
+
+function initEngineSettings() {
+    const engineModalElement = document.getElementById('engine-modal');
+    const closeBtn = engineModalElement.querySelector('.close-btn');
+    closeBtn.addEventListener('click', closeEngineModal);
+    engineModalElement.addEventListener('click', (e) => {
+        if (e.target === engineModalElement) closeEngineModal();
+    });
+    document.getElementById('cancel-engine').addEventListener('click', closeEngineModal);
+    document.getElementById('save-engine').addEventListener('click', handleSaveEngine);
+
+    const addEngineBtn = document.getElementById('settings-add-engine');
+    if (addEngineBtn) {
+        addEngineBtn.addEventListener('click', () => openEngineEditor('add'));
+    }
 }
 
 function closeSettingsModal() {
@@ -1523,22 +1907,16 @@ document.addEventListener('DOMContentLoaded', function () {
     loadOpenBehavior();
     shortcutManager.init();
 
-    // 加载保存的搜索引擎选择
-    storage.get('searchEngine', function (data) {
-        if (data.searchEngine) {
-            const savedUrl = data.searchEngine;
-            const index = engines.findIndex(e => e.url === savedUrl);
-            if (index !== -1) {
-                currentEngineIndex = index;
-            }
-        }
+    // 加载搜索引擎配置（自定义引擎 + 启用列表 + 当前引擎）
+    engineManager.load(function () {
         updateEngineIcon();
     });
+    engineMenu.init();
 
     // 绑定搜索引擎切换事件（原生按钮自带 Enter/Space 触发 click）
     const engineSelector = document.getElementById('engine-selector');
     if (engineSelector) {
-        engineSelector.addEventListener('click', toggleEngine);
+        engineSelector.addEventListener('click', handleEngineClick);
     }
 
     // 加载快速链接

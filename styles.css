@@ -509,6 +509,155 @@ body.loaded .launcher {
     opacity: 0.82;
 }
 
+/* 自定义搜索引擎的字母标记（内置引擎用 SVG 图标） */
+.engine-letter {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* 引擎菜单浮层（启用 3 个及以上引擎时出现） */
+.engine-menu {
+    position: fixed;
+    z-index: 1500;
+    min-width: 168px;
+    padding: 6px;
+    color: var(--c-text-primary);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px var(--c-shadow);
+    display: none;
+}
+
+.engine-menu.open {
+    display: block;
+}
+
+.engine-menu-item {
+    width: 100%;
+    min-height: 34px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--c-text-secondary);
+    background: transparent;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.engine-menu-item:hover,
+.engine-menu-item:focus-visible {
+    color: var(--c-text-primary);
+    background: var(--c-surface-muted);
+    outline: 0;
+}
+
+.engine-menu-item.active {
+    color: var(--c-text-primary);
+    background: var(--c-accent-soft);
+}
+
+.engine-menu-item svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+}
+
+.engine-menu-item .engine-letter {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+}
+
+/* 设置区引擎列表 */
+.engine-list {
+    display: grid;
+    gap: 6px;
+}
+
+.engine-row {
+    min-height: 40px;
+    padding: 0 10px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--c-text-primary);
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.engine-row:hover {
+    background: var(--c-surface);
+    border-color: var(--c-accent);
+}
+
+.engine-row input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    accent-color: var(--c-accent);
+    cursor: pointer;
+}
+
+.engine-row .engine-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.engine-row .engine-url-preview {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--c-text-secondary);
+    font-size: 0.74rem;
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.engine-row .settings-link-action {
+    flex: 0 0 auto;
+}
+
+.settings-add-engine {
+    margin-top: 10px;
+}
+
+.engine-hint {
+    margin-top: 7px;
+    color: var(--c-text-secondary);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+.engine-hint code {
+    padding: 1px 5px;
+    color: var(--c-text-primary);
+    background: var(--c-surface-muted);
+    border-radius: 4px;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+}
+
 /* 快捷链接启动器：透明常驻，无容器表面，靠悬停底色与站点圆点建立层次 */
 .launcher {
     max-width: 640px;

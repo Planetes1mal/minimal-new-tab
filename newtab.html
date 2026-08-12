@@ -21,6 +21,7 @@
             <button type="button" class="engine-selector" id="engine-selector" aria-label="切换搜索引擎"
                 title="切换搜索引擎">
                 <svg id="engine-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"></svg>
+                <span id="engine-letter" class="engine-letter" aria-hidden="true" style="display: none;"></span>
             </button>
             <input type="text" id="search-input" placeholder="Searching..." autofocus aria-label="搜索内容">
             <button type="submit" id="search-button" class="search-submit" aria-label="搜索">
@@ -190,6 +191,10 @@
                                 <span class="segment-label">当前标签页</span>
                             </label>
                         </div>
+                        <h4 class="settings-sub-title">搜索引擎</h4>
+                        <p class="settings-section-desc">勾选启用的引擎；启用 3 个及以上时，点击搜索框左侧图标弹出引擎菜单。</p>
+                        <div id="engine-list" class="engine-list"></div>
+                        <button id="settings-add-engine" class="btn btn-secondary settings-add-engine">＋ 添加搜索引擎</button>
                     </section>
 
                     <section id="links-section" class="settings-section" role="tabpanel" hidden>
@@ -287,6 +292,37 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-link">取消</button>
                     <button type="button" class="btn btn-primary" id="save-link">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="engine-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>搜索引擎</h2>
+                <button class="close-btn" aria-label="关闭">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <form class="modal-form">
+                <div class="form-group">
+                    <label for="engine-name">名称</label>
+                    <input type="text" id="engine-name" placeholder="例如：DuckDuckGo">
+                </div>
+
+                <div class="form-group">
+                    <label for="engine-url">搜索网址</label>
+                    <input type="url" id="engine-url" placeholder="https://example.com/search?q={q}">
+                    <p class="engine-hint">用 <code>{q}</code> 表示搜索词占位，例如 <code>https://duckduckgo.com/?q={q}</code></p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-engine">取消</button>
+                    <button type="button" class="btn btn-primary" id="save-engine">保存</button>
                 </div>
             </form>
         </div>
