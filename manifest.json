@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "极简新标签页",
-    "version": "2.0",
+    "version": "2.1",
     "description": "一个极简的新标签页",
     "chrome_url_overrides": {
         "newtab": "newtab.html"
