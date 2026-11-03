@@ -13,8 +13,9 @@
     --c-surface: #fbfcfa;
     --c-surface-muted: #e9ede8;
     --c-text-primary: #171a18;
-    --c-text-secondary: #676e68;
+    --c-text-secondary: #656c66;
     --c-border: #d8ddd8;
+    --c-control-border: #878e88;
     --c-accent: #2f6b57;
     --c-accent-strong: #245442;
     --c-accent-soft: rgba(47, 107, 87, 0.1);
@@ -43,6 +44,7 @@
         --c-text-primary: #eef1ed;
         --c-text-secondary: #99a19a;
         --c-border: #343b35;
+        --c-control-border: #626a63;
         --c-accent: #74b99b;
         --c-accent-strong: #8fcbae;
         --c-accent-soft: rgba(116, 185, 155, 0.13);
@@ -58,14 +60,15 @@
     }
 }
 
-body.light {
+html.light {
     color-scheme: light;
     --c-bg: #f3f5f2;
     --c-surface: #fbfcfa;
     --c-surface-muted: #e9ede8;
     --c-text-primary: #171a18;
-    --c-text-secondary: #676e68;
+    --c-text-secondary: #656c66;
     --c-border: #d8ddd8;
+    --c-control-border: #878e88;
     --c-accent: #2f6b57;
     --c-accent-strong: #245442;
     --c-accent-soft: rgba(47, 107, 87, 0.1);
@@ -80,7 +83,7 @@ body.light {
     --c-success-strong: #1f5c3d;
 }
 
-body.dark {
+html.dark {
     color-scheme: dark;
     --c-bg: #101311;
     --c-surface: #191d1a;
@@ -88,6 +91,7 @@ body.dark {
     --c-text-primary: #eef1ed;
     --c-text-secondary: #99a19a;
     --c-border: #343b35;
+    --c-control-border: #626a63;
     --c-accent: #74b99b;
     --c-accent-strong: #8fcbae;
     --c-accent-soft: rgba(116, 185, 155, 0.13);
@@ -103,7 +107,7 @@ body.dark {
 }
 
 /* 配色方案（非默认）：碧蓝 ocean —— 浅色 */
-body[data-scheme="ocean"] {
+html[data-scheme="ocean"] {
     color-scheme: light;
     --c-bg: #eef3f7;
     --c-surface: #f8fbfd;
@@ -111,6 +115,7 @@ body[data-scheme="ocean"] {
     --c-text-primary: #15202b;
     --c-text-secondary: #5c6b78;
     --c-border: #d3dde6;
+    --c-control-border: #808d99;
     --c-accent: #2563a8;
     --c-accent-strong: #1e4f8a;
     --c-accent-soft: rgba(37, 99, 168, 0.1);
@@ -126,7 +131,7 @@ body[data-scheme="ocean"] {
 }
 
 /* 配色方案（非默认）：琥珀 amber —— 浅色 */
-body[data-scheme="amber"] {
+html[data-scheme="amber"] {
     color-scheme: light;
     --c-bg: #f6f1e8;
     --c-surface: #fdfaf4;
@@ -134,6 +139,7 @@ body[data-scheme="amber"] {
     --c-text-primary: #241d12;
     --c-text-secondary: #6f624c;
     --c-border: #e2d8c4;
+    --c-control-border: #968a75;
     --c-accent: #a3601f;
     --c-accent-strong: #85491a;
     --c-accent-soft: rgba(163, 96, 31, 0.1);
@@ -149,14 +155,15 @@ body[data-scheme="amber"] {
 }
 
 /* 配色方案（非默认）：岩墨 slate —— 浅色 */
-body[data-scheme="slate"] {
+html[data-scheme="slate"] {
     color-scheme: light;
     --c-bg: #f2f2f4;
     --c-surface: #fafafb;
     --c-surface-muted: #e7e7ea;
     --c-text-primary: #1a1a1f;
-    --c-text-secondary: #6d6d75;
+    --c-text-secondary: #66666e;
     --c-border: #d7d7dc;
+    --c-control-border: #8a8a91;
     --c-accent: #3d3d46;
     --c-accent-strong: #2f2f38;
     --c-accent-soft: rgba(61, 61, 70, 0.09);
@@ -174,7 +181,7 @@ body[data-scheme="slate"] {
 /* 配色方案深色变体（手动深色 + 跟随系统两种来源，每套自成一块） */
 
 /* 碧蓝 ocean —— 深色 */
-body.dark[data-scheme="ocean"] {
+html.dark[data-scheme="ocean"] {
     color-scheme: dark;
     --c-bg: #0e141b;
     --c-surface: #16202a;
@@ -182,6 +189,7 @@ body.dark[data-scheme="ocean"] {
     --c-text-primary: #e6eef5;
     --c-text-secondary: #93a5b5;
     --c-border: #2e3d4c;
+    --c-control-border: #5c6d7c;
     --c-accent: #6fb1e6;
     --c-accent-strong: #8ec6f0;
     --c-accent-soft: rgba(111, 177, 230, 0.13);
@@ -197,7 +205,7 @@ body.dark[data-scheme="ocean"] {
 }
 
 @media (prefers-color-scheme: dark) {
-    body[data-scheme="ocean"]:not(.light):not(.dark) {
+    html[data-scheme="ocean"]:not(.light):not(.dark) {
         color-scheme: dark;
         --c-bg: #0e141b;
         --c-surface: #16202a;
@@ -205,6 +213,7 @@ body.dark[data-scheme="ocean"] {
         --c-text-primary: #e6eef5;
         --c-text-secondary: #93a5b5;
         --c-border: #2e3d4c;
+        --c-control-border: #5c6d7c;
         --c-accent: #6fb1e6;
         --c-accent-strong: #8ec6f0;
         --c-accent-soft: rgba(111, 177, 230, 0.13);
@@ -221,7 +230,7 @@ body.dark[data-scheme="ocean"] {
 }
 
 /* 琥珀 amber —— 深色 */
-body.dark[data-scheme="amber"] {
+html.dark[data-scheme="amber"] {
     color-scheme: dark;
     --c-bg: #171209;
     --c-surface: #201a10;
@@ -229,6 +238,7 @@ body.dark[data-scheme="amber"] {
     --c-text-primary: #f2ead9;
     --c-text-secondary: #a2957c;
     --c-border: #40372a;
+    --c-control-border: #716653;
     --c-accent: #dd9a54;
     --c-accent-strong: #e8b173;
     --c-accent-soft: rgba(221, 154, 84, 0.13);
@@ -244,7 +254,7 @@ body.dark[data-scheme="amber"] {
 }
 
 @media (prefers-color-scheme: dark) {
-    body[data-scheme="amber"]:not(.light):not(.dark) {
+    html[data-scheme="amber"]:not(.light):not(.dark) {
         color-scheme: dark;
         --c-bg: #171209;
         --c-surface: #201a10;
@@ -252,6 +262,7 @@ body.dark[data-scheme="amber"] {
         --c-text-primary: #f2ead9;
         --c-text-secondary: #a2957c;
         --c-border: #40372a;
+        --c-control-border: #716653;
         --c-accent: #dd9a54;
         --c-accent-strong: #e8b173;
         --c-accent-soft: rgba(221, 154, 84, 0.13);
@@ -268,7 +279,7 @@ body.dark[data-scheme="amber"] {
 }
 
 /* 岩墨 slate —— 深色 */
-body.dark[data-scheme="slate"] {
+html.dark[data-scheme="slate"] {
     color-scheme: dark;
     --c-bg: #101012;
     --c-surface: #18181c;
@@ -276,6 +287,7 @@ body.dark[data-scheme="slate"] {
     --c-text-primary: #ececf0;
     --c-text-secondary: #9a9aa3;
     --c-border: #333338;
+    --c-control-border: #64646b;
     --c-accent: #a6a6b2;
     --c-accent-strong: #bcbcc8;
     --c-accent-soft: rgba(166, 166, 178, 0.13);
@@ -291,7 +303,7 @@ body.dark[data-scheme="slate"] {
 }
 
 @media (prefers-color-scheme: dark) {
-    body[data-scheme="slate"]:not(.light):not(.dark) {
+    html[data-scheme="slate"]:not(.light):not(.dark) {
         color-scheme: dark;
         --c-bg: #101012;
         --c-surface: #18181c;
@@ -299,6 +311,7 @@ body.dark[data-scheme="slate"] {
         --c-text-primary: #ececf0;
         --c-text-secondary: #9a9aa3;
         --c-border: #333338;
+        --c-control-border: #64646b;
         --c-accent: #a6a6b2;
         --c-accent-strong: #bcbcc8;
         --c-accent-soft: rgba(166, 166, 178, 0.13);
@@ -477,7 +490,7 @@ body.loaded .launcher {
 
 .search-wrapper:focus-within {
     background: var(--c-surface);
-    box-shadow: 0 0 0 2px var(--c-focus-ring);
+    box-shadow: 0 0 0 2px var(--c-accent);
 }
 
 .engine-selector,
@@ -609,6 +622,11 @@ body.loaded .launcher {
     outline: 0;
 }
 
+.engine-menu-item:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: -2px;
+}
+
 .engine-menu-item.active {
     color: var(--c-text-primary);
     background: var(--c-accent-soft);
@@ -685,6 +703,24 @@ body.loaded .launcher {
     height: 2px;
 }
 
+/* 启动器条目：包装元素承担布局与拖拽，内含链接与独立的删除按钮 */
+.quick-link-item {
+    position: relative;
+    flex: 0 1 auto;
+    max-width: 160px;
+    min-width: 0;
+    display: flex;
+    cursor: grab;
+}
+
+.quick-link-item .quick-link {
+    max-width: 100%;
+}
+
+.quick-link-item:active {
+    cursor: grabbing;
+}
+
 .quick-link {
     position: relative;
     flex: 0 1 auto;
@@ -698,6 +734,7 @@ body.loaded .launcher {
     color: var(--c-text-secondary);
     background: transparent;
     border-radius: 10px;
+    font: inherit;
     font-size: 0.9375rem;
     font-weight: 500;
     line-height: 1.2;
@@ -748,26 +785,18 @@ body.loaded .launcher {
     text-overflow: ellipsis;
 }
 
-.add-link {
-    opacity: 0.8;
-}
-
-.add-link:hover,
-.add-link:focus-visible {
-    opacity: 1;
-}
-
 .add-link-button svg {
     width: 14px;
     height: 14px;
 }
 
+/* 删除按钮：24×24 点击区域（WCAG 2.5.8），悬停或键盘聚焦条目时出现 */
 .delete-link {
     position: absolute;
-    top: -7px;
-    right: -7px;
-    width: 22px;
-    height: 22px;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -781,13 +810,12 @@ body.loaded .launcher {
 }
 
 .delete-link svg {
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 14px;
 }
 
-.quick-link:hover .delete-link,
-.quick-link:focus-within .delete-link,
-.delete-link:focus-visible {
+.quick-link-item:hover .delete-link,
+.quick-link-item:focus-within .delete-link {
     opacity: 1;
     pointer-events: auto;
 }
@@ -798,17 +826,17 @@ body.loaded .launcher {
     background: var(--c-danger);
 }
 
-.quick-link.dragging {
+.quick-link-item.dragging {
     opacity: 0.38;
 }
 
 /* 链接条目增删动画 */
-.quick-link.entry-in,
+.quick-link-item.entry-in,
 .settings-link-row.entry-in {
     animation: entry-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.quick-link.leaving,
+.quick-link-item.leaving,
 .settings-link-row.leaving {
     animation: leave-out 180ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
@@ -832,13 +860,7 @@ body.loaded .launcher {
     }
 }
 
-.quick-link[draggable="true"] {
-    cursor: grab;
-}
 
-.quick-link[draggable="true"]:active {
-    cursor: grabbing;
-}
 
 /* 对角角落控制：扁平图标，无边框无阴影，hover 淡底；与透明启动器同语言 */
 .corner-btn,
@@ -1013,8 +1035,7 @@ body.loaded .launcher {
     margin-bottom: 20px;
 }
 
-.form-group > label,
-.form-label {
+.form-group > label {
     display: block;
     margin-bottom: 8px;
     color: var(--c-text-primary);
@@ -1031,7 +1052,7 @@ textarea#import-json {
     padding: 11px 12px;
     color: var(--c-text-primary);
     background: var(--c-bg);
-    border: 1px solid var(--c-border);
+    border: 1px solid var(--c-control-border);
     border-radius: 8px;
     outline: 0;
     font-size: 0.9rem;
@@ -1047,7 +1068,7 @@ textarea#import-json {
 .form-group input::placeholder,
 textarea#import-json::placeholder {
     color: var(--c-text-secondary);
-    opacity: 0.76;
+    opacity: 1;
 }
 
 .form-group input[type="text"]:focus,
@@ -1123,30 +1144,16 @@ textarea#import-json:focus {
     box-shadow: 0 1px 2px var(--c-shadow);
 }
 
-/* 指定图标 URL 的输入框：展开时直接出现在分段控件下方，不再套一层外框 */
-.form-label {
-    display: block;
+/* 字段错误：就近显示在输入框下方 */
+.field-error {
+    margin-top: 6px;
+    color: var(--c-danger-strong);
+    font-size: 0.8125rem;
+    line-height: 1.45;
 }
 
-.custom-url-input {
-    max-height: 0;
-    margin-top: 0;
-    overflow: hidden;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: max-height 0.24s cubic-bezier(0.25, 1, 0.5, 1),
-        margin-top 0.24s ease,
-        opacity 0.18s ease,
-        transform 0.24s ease;
-}
-
-.custom-url-input.show {
-    max-height: 60px;
-    margin-top: 10px;
-    /* 展开后不裁切输入框的聚焦环 */
-    overflow: visible;
-    opacity: 1;
-    transform: translateY(0);
+.form-group input[aria-invalid="true"] {
+    border-color: var(--c-danger);
 }
 
 /* 弹窗底部按钮：主操作在右（与平台对话框惯例一致），宽度随内容 */
@@ -1556,7 +1563,7 @@ button.settings-row:hover,
     width: 40px;
     height: 24px;
     margin: 0;
-    background: var(--c-border);
+    background: var(--c-control-border);
     border-radius: 999px;
     cursor: pointer;
     transition: background-color 0.2s ease;
@@ -1588,7 +1595,7 @@ button.settings-row:hover,
     opacity: 0.5;
 }
 
-.settings-row-toggle:has(.switch:disabled) {
+.settings-row-toggle.is-disabled {
     cursor: default;
 }
 
@@ -1964,6 +1971,11 @@ button.settings-row:focus-visible {
         scrollbar-width: none;
     }
 
+    /* Chrome 121 之前不支持 scrollbar-width */
+    .settings-nav::-webkit-scrollbar {
+        display: none;
+    }
+
     .settings-nav-item {
         flex: 0 0 auto;
         min-height: 34px;
@@ -2107,8 +2119,9 @@ button.settings-row:focus-visible {
     }
 }
 
-/* 矮视口：压缩时间与间距，角落控制移到顶部，保证主控件完整可见 */
-@media (max-height: 620px) {
+/* 矮视口（仅宽屏；窄屏已有各自的紧凑规则，不能被这里覆盖）：
+   压缩时间与间距，角落控制移到顶部，保证主控件完整可见 */
+@media (max-height: 620px) and (min-width: 769px) {
     .container {
         padding: 60px 24px 48px;
     }
