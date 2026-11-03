@@ -1361,10 +1361,23 @@ function renderSettingsLinks(links) {
         dot.setAttribute('aria-hidden', 'true');
         dot.style.setProperty('--c-site-color', getSiteColor(link.url));
 
-        const handle = document.createElement('span');
+        // 排序手柄：鼠标拖动整行；键盘聚焦后用方向键 / Home / End 调整位置
+        const handle = document.createElement('button');
+        handle.type = 'button';
         handle.className = 'drag-handle';
-        handle.setAttribute('aria-hidden', 'true');
+        handle.setAttribute('aria-label', `调整“${link.name}”的顺序，当前第 ${index + 1} 个，共 ${links.length} 个`);
+        handle.setAttribute('aria-describedby', 'link-reorder-hint');
         handle.innerHTML = DRAG_HANDLE_SVG;
+        // 点击手柄不打开编辑弹窗
+        handle.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+        handle.addEventListener('keydown', function (e) {
+            const moves = { ArrowUp: -1, ArrowDown: 1, Home: 'start', End: 'end' };
+            if (!(e.key in moves)) return;
+            e.preventDefault();
+            moveLink(index, key, moves[e.key]);
+        });
 
         const text = document.createElement('span');
         text.className = 'settings-row-text';
@@ -1421,6 +1434,38 @@ function renderSettingsLinks(links) {
     });
 
     setupSettingsListDrag();
+
+    // 键盘排序后，焦点回到被移动条目的手柄上
+    if (pendingHandleFocusKey !== null) {
+        const moved = list.querySelector(`.settings-link-row[data-key="${CSS.escape(pendingHandleFocusKey)}"] .drag-handle`);
+        pendingHandleFocusKey = null;
+        if (moved) moved.focus();
+    }
+}
+
+// 键盘排序：重渲染后需要聚焦的条目
+let pendingHandleFocusKey = null;
+
+// 用键盘移动链接：step 为 -1 / 1（上移 / 下移）或 'start' / 'end'（移到最前 / 最后）。
+// 目标位置在最新列表中按条目当前位置计算，连续快速按键也能逐格移动
+function moveLink(index, key, step) {
+    mutateLinks(function (links) {
+        const from = findLinkIndex(links, index, key);
+        if (from === -1) return false;
+        // 无论是否移动，列表都会重渲染；焦点都要回到这个手柄
+        pendingHandleFocusKey = key;
+        let to = step === 'start' ? 0 : step === 'end' ? links.length - 1 : from + step;
+        to = Math.max(0, Math.min(to, links.length - 1));
+        if (to === from) {
+            announce(from === 0 ? '已在第一个' : '已在最后一个');
+            return false;
+        }
+        const moved = links.splice(from, 1)[0];
+        links.splice(to, 0, moved);
+        return { name: moved.name, position: to + 1, total: links.length };
+    }, function (result) {
+        announce(`“${result.name}”已移到第 ${result.position} 个，共 ${result.total} 个`);
+    });
 }
 
 // 通用插入式拖拽：容器内的 [data-index] 子项可拖拽，拖拽时在目标空隙显示
@@ -1823,6 +1868,14 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
+// 读屏播报：写入始终存在的实时区域（先清空，保证相同文字也会再次朗读）
+function announce(text) {
+    const live = document.getElementById('toast-live');
+    if (!live) return;
+    live.textContent = '';
+    setTimeout(() => { live.textContent = text; }, 50);
+}
+
 // 操作反馈提示：可附带"撤销"等操作，数秒后自动消失
 const toast = {
     timer: null,
@@ -1836,12 +1889,7 @@ const toast = {
 
         clearTimeout(this.timer);
         textEl.textContent = text;
-        // 读屏播报：写入始终存在的实时区域（先清空，保证相同文字也会再次朗读）
-        const live = document.getElementById('toast-live');
-        if (live) {
-            live.textContent = '';
-            setTimeout(() => { live.textContent = text; }, 50);
-        }
+        announce(text);
         actionEl.hidden = !opts.onAction;
         actionEl.textContent = opts.actionLabel || '撤销';
         actionEl.onclick = opts.onAction ? () => {
