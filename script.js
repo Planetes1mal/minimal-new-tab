@@ -49,6 +49,21 @@ const themeManager = {
             body.classList.add('light');
             themeToggle.classList.add('light');
         }
+        this.updateThemeModeControl();
+    },
+
+    // 设置页选择显示模式：'light' / 'dark' / 'system'（跟随系统存为 null）
+    setTheme(mode) {
+        this.currentTheme = mode === 'light' || mode === 'dark' ? mode : null;
+        this.saveTheme(this.currentTheme);
+        this.applyTheme();
+    },
+
+    // 同步设置页的显示模式选中态
+    updateThemeModeControl() {
+        const value = this.currentTheme || 'system';
+        const radio = document.querySelector(`input[name="theme-mode"][value="${value}"]`);
+        if (radio) radio.checked = true;
     },
 
     // 切换主题
@@ -293,6 +308,11 @@ const shortcutManager = {
     // 全局按键处理：匹配动作并执行；录制态与输入态不处理
     handleKeydown(event) {
         if (this.recordingAction) return;
+        // 对话框惯例：Esc 始终关闭最上层弹窗，即使焦点在输入框内
+        if (event.key === 'Escape' && closeTopmostModal()) {
+            event.preventDefault();
+            return;
+        }
         const target = event.target;
         const isTyping = target && (
             target.matches('input, textarea, select') || target.isContentEditable
@@ -318,19 +338,13 @@ const shortcutManager = {
                 break;
             }
             case 'openSettings':
-                openModal(settingsModal);
-                showSettingsSection('general');
+                openSettings();
                 break;
             case 'toggleTheme':
                 themeManager.toggleTheme();
                 break;
             case 'closeModal':
-                if (settingsModal.style.display === 'block') {
-                    closeSettingsModal();
-                }
-                if (modal.style.display === 'block') {
-                    closeModal();
-                }
+                closeTopmostModal();
                 break;
         }
     },
@@ -344,12 +358,12 @@ const shortcutManager = {
         Object.keys(SHORTCUT_ACTIONS).forEach(action => {
             const row = document.createElement('button');
             row.type = 'button';
-            row.className = 'shortcut-row';
+            row.className = 'settings-row shortcut-row';
             row.dataset.action = action;
             row.setAttribute('aria-label', `修改快捷键：${SHORTCUT_ACTIONS[action].label}`);
 
             const name = document.createElement('span');
-            name.className = 'shortcut-name';
+            name.className = 'settings-row-title';
             name.textContent = SHORTCUT_ACTIONS[action].label;
 
             const key = document.createElement('kbd');
@@ -369,7 +383,7 @@ const shortcutManager = {
         this.recordingAction = action;
         row.classList.add('recording');
         const keyEl = row.querySelector('.shortcut-key');
-        keyEl.textContent = '按下新按键…';
+        keyEl.textContent = '按下新组合键';
 
         this.recordingHandler = (event) => {
             event.preventDefault();
@@ -395,10 +409,12 @@ const shortcutManager = {
             );
             if (conflict) {
                 row.classList.remove('recording');
-                keyEl.textContent = `冲突：${SHORTCUT_ACTIONS[conflict].label}`;
+                row.classList.add('conflict');
+                keyEl.textContent = `已被“${SHORTCUT_ACTIONS[conflict].label}”使用`;
                 setTimeout(() => {
+                    row.classList.remove('conflict');
                     keyEl.textContent = this.displayKey(this.getKey(action));
-                }, 1500);
+                }, 2000);
                 this.finishRecording();
                 return;
             }
@@ -433,6 +449,7 @@ const shortcutManager = {
             console.error('Error resetting shortcuts:', e);
         }
         this.renderShortcutList();
+        toast.show('已恢复默认快捷键');
     }
 };
 
@@ -461,9 +478,9 @@ function setOpenInNewTab(value) {
 }
 
 function updateOpenBehaviorControl() {
-    const radio = document.querySelector(`input[name="open-in-new-tab"][value="${openInNewTab ? 'new' : 'current'}"]`);
-    if (radio) {
-        radio.checked = true;
+    const toggle = document.getElementById('open-in-new-tab');
+    if (toggle) {
+        toggle.checked = openInNewTab;
     }
 }
 
@@ -490,13 +507,21 @@ function updateDateTime() {
     const hoursText = hourFormat === '12' ? String(hours) : String(hours).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timeEl = document.getElementById('time');
-    // 使用可单独控制的冒号元素，便于动画
-    timeEl.innerHTML = `${hoursText}<span class="colon">:</span>${minutes}${period}`;
+    // 仅在分钟或制式变化时重建 DOM，避免每秒重启冒号的呼吸动画
+    const timeKey = `${hoursText}:${minutes}${period}`;
+    if (timeEl.dataset.value !== timeKey) {
+        timeEl.dataset.value = timeKey;
+        const periodHtml = period ? `<span class="period">${period.trim()}</span>` : '';
+        timeEl.innerHTML = `${hoursText}<span class="colon">:</span>${minutes}${periodHtml}`;
+    }
 
-    // 更新日期 - 紧凑大写英文格式，如 MONDAY · AUG 11
-    const options = { weekday: 'long', month: 'short', day: 'numeric' };
-    const dateText = now.toLocaleDateString('en-US', options).toUpperCase().replace(',', ' ·');
-    document.getElementById('date').textContent = dateText;
+    // 更新日期 - 中文短句，如 11月3日 星期二
+    const weekday = now.toLocaleDateString('zh-CN', { weekday: 'long' });
+    const dateText = `${now.getMonth() + 1}月${now.getDate()}日 ${weekday}`;
+    const dateEl = document.getElementById('date');
+    if (dateEl.textContent !== dateText) {
+        dateEl.textContent = dateText;
+    }
 }
 
 // 每秒更新一次时间
@@ -814,8 +839,10 @@ document.addEventListener('change', function (e) {
         }
     } else if (e.target && e.target.name === 'hour-format') {
         setHourFormat(e.target.value);
-    } else if (e.target && e.target.name === 'open-in-new-tab') {
-        setOpenInNewTab(e.target.value);
+    } else if (e.target && e.target.id === 'open-in-new-tab') {
+        setOpenInNewTab(e.target.checked ? 'new' : 'current');
+    } else if (e.target && e.target.name === 'theme-mode') {
+        themeManager.setTheme(e.target.value);
     }
 });
 
@@ -1124,6 +1151,10 @@ const DELETE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M4 7H20M9 7V4H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16M14 11V16"></path></svg>';
 
+const DRAG_HANDLE_SVG = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+    '<circle cx="6" cy="4" r="1.2"/><circle cx="10" cy="4" r="1.2"/><circle cx="6" cy="8" r="1.2"/>' +
+    '<circle cx="10" cy="8" r="1.2"/><circle cx="6" cy="12" r="1.2"/><circle cx="10" cy="12" r="1.2"/></svg>';
+
 // 渲染设置页的快捷链接列表（与启动器同存储，双向同步）
 function renderSettingsLinks(links) {
     const list = document.getElementById('settings-link-list');
@@ -1153,7 +1184,7 @@ function renderSettingsLinks(links) {
     if (!links.length) {
         const empty = document.createElement('p');
         empty.className = 'settings-link-empty';
-        empty.textContent = '暂无快捷链接，点击上方按钮添加。';
+        empty.textContent = '还没有快捷链接。点击“添加链接”把常用网站放到搜索框下方。';
         list.appendChild(empty);
         setupSettingsListDrag();
         return;
@@ -1161,7 +1192,7 @@ function renderSettingsLinks(links) {
 
     links.forEach((link, index) => {
         const row = document.createElement('div');
-        row.className = 'settings-link-row';
+        row.className = 'settings-row settings-link-row';
         row.draggable = true;
         row.dataset.index = index;
         row.dataset.key = `${link.url}|${link.name}`;
@@ -1175,17 +1206,25 @@ function renderSettingsLinks(links) {
         dot.setAttribute('aria-hidden', 'true');
         dot.style.setProperty('--c-site-color', getSiteColor(link.url));
 
-        const name = document.createElement('span');
-        name.className = 'settings-link-name';
-        name.textContent = link.name;
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.setAttribute('aria-hidden', 'true');
+        handle.innerHTML = DRAG_HANDLE_SVG;
 
+        const text = document.createElement('span');
+        text.className = 'settings-row-text';
+        const name = document.createElement('span');
+        name.className = 'settings-row-title';
+        name.textContent = link.name;
         const url = document.createElement('span');
-        url.className = 'settings-link-url';
+        url.className = 'settings-row-desc';
         try {
             url.textContent = new URL(link.url).hostname;
         } catch (e) {
             url.textContent = link.url;
         }
+        text.appendChild(name);
+        text.appendChild(url);
 
         const actions = document.createElement('span');
         actions.className = 'settings-link-actions';
@@ -1213,9 +1252,9 @@ function renderSettingsLinks(links) {
         actions.appendChild(editButton);
         actions.appendChild(deleteButton);
 
+        row.appendChild(handle);
         row.appendChild(dot);
-        row.appendChild(name);
-        row.appendChild(url);
+        row.appendChild(text);
         row.appendChild(actions);
 
         // 点击行主体打开编辑弹窗
@@ -1415,9 +1454,15 @@ function deleteLink(index) {
         if (executed) return;
         executed = true;
         storage.get('quickLinks', function (data) {
-            const links = (data.quickLinks || defaultLinks).slice();
-            links.splice(index, 1);
+            const previous = (data.quickLinks || defaultLinks).slice();
+            const links = previous.slice();
+            const removed = links.splice(index, 1)[0];
             saveLinks(links);
+            if (removed) {
+                toast.show(`已删除“${removed.name}”`, {
+                    onAction: () => saveLinks(previous)
+                });
+            }
         });
     };
 
@@ -1449,31 +1494,38 @@ function handleSaveLink() {
     const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
     const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
 
-    if (linkName && linkUrl) {
-        if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
-            linkUrl = 'https://' + linkUrl;
+    if (!linkName) {
+        document.getElementById('link-name').focus();
+        return;
+    }
+    if (!linkUrl) {
+        document.getElementById('link-url').focus();
+        return;
+    }
+
+    if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+        linkUrl = 'https://' + linkUrl;
+    }
+
+    let icon = '';
+    if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
+    if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
+
+    storage.get('quickLinks', function (data) {
+        const links = (data.quickLinks || defaultLinks).slice();
+
+        if (modal.dataset.mode === 'edit') {
+            // 编辑模式：更新指定索引
+            const idx = parseInt(modal.dataset.editingIndex);
+            links[idx] = { name: linkName, url: linkUrl, iconMode, icon };
+        } else {
+            // 新增模式：push 到数组
+            links.push({ name: linkName, url: linkUrl, iconMode, icon });
         }
 
-        let icon = '';
-        if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
-        if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
-
-        storage.get('quickLinks', function (data) {
-            const links = (data.quickLinks || defaultLinks).slice();
-
-            if (modal.dataset.mode === 'edit') {
-                // 编辑模式：更新指定索引
-                const idx = parseInt(modal.dataset.editingIndex);
-                links[idx] = { name: linkName, url: linkUrl, iconMode, icon };
-            } else {
-                // 新增模式：push 到数组
-                links.push({ name: linkName, url: linkUrl, iconMode, icon });
-            }
-
-            saveLinks(links);
-            closeModal();
-        });
-    }
+        saveLinks(links);
+        closeModal();
+    });
 }
 
 // 右键编辑：打开编辑弹窗（edit 模式）
@@ -1498,7 +1550,8 @@ function openLinkEditor(mode, index) {
 
             modal.dataset.mode = 'edit';
             modal.dataset.editingIndex = index;
-            openModal(modal);
+            document.getElementById('link-modal-title').textContent = '编辑快捷链接';
+            openModal(modal, document.getElementById('link-name'));
             document.getElementById('link-name').value = current.name || '';
             document.getElementById('link-url').value = current.url || '';
             const iconMode = current.iconMode || (current.icon ? 'favicon' : 'letter');
@@ -1527,7 +1580,8 @@ function openLinkEditor(mode, index) {
     // 新增模式
     modal.dataset.mode = 'add';
     delete modal.dataset.editingIndex;
-    openModal(modal);
+    document.getElementById('link-modal-title').textContent = '添加快捷链接';
+    openModal(modal, document.getElementById('link-name'));
     document.getElementById('link-name').value = '';
     document.getElementById('link-url').value = '';
     // 默认选择 favicon
@@ -1549,7 +1603,6 @@ modal.dataset.mode = 'add';
 const addLinkButton = document.getElementById('add-link-button');
 const closeButton = modal.querySelector('.close-btn');
 const cancelButton = document.getElementById('cancel-link');
-const saveLinkButton = document.getElementById('save-link');
 
 // 打开模态框（新增模式）
 addLinkButton.onclick = function (e) {
@@ -1564,23 +1617,119 @@ addLinkButton.addEventListener('keydown', function (e) {
     }
 });
 
-// 打开弹窗：清理关闭动画残留
-function openModal(modalElement) {
-    modalElement.classList.remove('closing');
-    modalElement.style.display = 'block';
+// 打开中的弹窗栈：后打开的在上层（如设置内再打开"编辑链接"）
+const openModalStack = [];
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="file"]), ' +
+    'textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getFocusableElements(container) {
+    return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR))
+        .filter(el => !el.closest('[hidden]') && el.getClientRects().length > 0);
 }
 
-// 通用弹窗关闭：播放关闭动画，动画结束后再隐藏
+// 打开弹窗：清理关闭动画残留，记住触发元素，焦点移入弹窗
+// initialFocus：可选，打开后优先聚焦的元素
+function openModal(modalElement, initialFocus) {
+    modalElement.classList.remove('closing');
+    modalElement.style.display = 'block';
+    if (!openModalStack.includes(modalElement)) {
+        modalElement.returnFocus = document.activeElement;
+        openModalStack.push(modalElement);
+    }
+    const target = initialFocus || getFocusableElements(modalElement)[0];
+    if (target) target.focus();
+}
+
+// 通用弹窗关闭：播放关闭动画，动画结束后再隐藏，并把焦点还给触发元素
 function animateModalClose(modalElement, afterClose) {
+    const stackIndex = openModalStack.indexOf(modalElement);
+    if (stackIndex !== -1) openModalStack.splice(stackIndex, 1);
+    const returnFocus = modalElement.returnFocus;
+    modalElement.returnFocus = null;
+
     modalElement.classList.add('closing');
     modalElement.addEventListener('animationend', function handler(e) {
         if (e.animationName !== 'modal-fade-out') return;
         modalElement.removeEventListener('animationend', handler);
         modalElement.classList.remove('closing');
         modalElement.style.display = 'none';
+        if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
         if (afterClose) afterClose();
     });
 }
+
+// 关闭最上层弹窗；没有打开的弹窗时返回 false
+function closeTopmostModal() {
+    const top = openModalStack[openModalStack.length - 1];
+    if (!top) return false;
+    if (top === settingsModal) {
+        closeSettingsModal();
+    } else if (top === engineModal) {
+        closeEngineModal();
+    } else if (top === modal) {
+        closeModal();
+    }
+    return true;
+}
+
+// 焦点陷阱：Tab / Shift+Tab 只在最上层弹窗内循环
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    const top = openModalStack[openModalStack.length - 1];
+    if (!top) return;
+    const focusable = getFocusableElements(top);
+    // 可撤销提示出现时，其操作按钮也在 Tab 循环内，键盘用户可以撤销
+    const toastAction = document.getElementById('toast-action');
+    if (toastAction && !toastAction.hidden && !document.getElementById('toast').hidden) {
+        focusable.push(toastAction);
+    }
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const inside = focusable.includes(document.activeElement);
+    if (e.shiftKey && (document.activeElement === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+    }
+});
+
+// 操作反馈提示：可附带"撤销"等操作，数秒后自动消失
+const toast = {
+    timer: null,
+
+    show(text, options) {
+        const el = document.getElementById('toast');
+        const textEl = document.getElementById('toast-text');
+        const actionEl = document.getElementById('toast-action');
+        if (!el || !textEl || !actionEl) return;
+        const opts = options || {};
+
+        clearTimeout(this.timer);
+        textEl.textContent = text;
+        actionEl.hidden = !opts.onAction;
+        actionEl.textContent = opts.actionLabel || '撤销';
+        actionEl.onclick = opts.onAction ? () => {
+            this.hide();
+            opts.onAction();
+        } : null;
+
+        // 重新触发入场动画
+        el.hidden = true;
+        void el.offsetWidth;
+        el.hidden = false;
+        // 带操作时留更长时间，便于用户反应
+        this.timer = setTimeout(() => this.hide(), opts.onAction ? 6000 : 3000);
+    },
+
+    hide() {
+        clearTimeout(this.timer);
+        const el = document.getElementById('toast');
+        if (el) el.hidden = true;
+    }
+};
 
 // 关闭模态框
 function closeModal() {
@@ -1605,40 +1754,37 @@ document.querySelector('.modal-content').addEventListener('click', function (e) 
     e.stopPropagation();
 });
 
-// 处理表单提交
-document.querySelector('.modal-form').addEventListener('submit', function (e) {
+// 处理表单提交（回车或点击"保存"）
+modal.querySelector('.modal-form').addEventListener('submit', function (e) {
     e.preventDefault();
     handleSaveLink();
 });
 
-// 绑定保存逻辑（统一使用 handleSaveLink）
-saveLinkButton.onclick = handleSaveLink;
 
 // 设置弹窗相关
 const settingsModal = document.getElementById('settings-modal');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
-const settingsNavItems = {
-    general: document.getElementById('nav-general'),
-    appearance: document.getElementById('nav-appearance'),
-    links: document.getElementById('nav-links'),
-    backup: document.getElementById('nav-backup'),
-    shortcuts: document.getElementById('nav-shortcuts'),
-    about: document.getElementById('nav-about')
+// 分区顺序即导航顺序；标题显示在内容区顶部
+const SETTINGS_SECTIONS = ['general', 'appearance', 'engines', 'links', 'shortcuts', 'backup', 'about'];
+const SETTINGS_SECTION_TITLES = {
+    general: '通用',
+    appearance: '外观',
+    engines: '搜索引擎',
+    links: '快捷链接',
+    shortcuts: '快捷键',
+    backup: '备份与恢复',
+    about: '关于'
 };
-const settingsSections = {
-    general: document.getElementById('general-section'),
-    appearance: document.getElementById('appearance-section'),
-    links: document.getElementById('links-section'),
-    backup: document.getElementById('backup-section'),
-    shortcuts: document.getElementById('shortcuts-section'),
-    about: document.getElementById('about-section')
-};
-const exportPanel = document.getElementById('export-panel');
+const settingsNavItems = {};
+const settingsSections = {};
+SETTINGS_SECTIONS.forEach(key => {
+    settingsNavItems[key] = document.getElementById(`nav-${key}`);
+    settingsSections[key] = document.getElementById(`${key}-section`);
+});
 const exportHint = document.getElementById('export-hint');
 const exportClipboardBtn = document.getElementById('export-clipboard-btn');
 const exportFileBtn = document.getElementById('export-file-btn');
-const importSection = document.getElementById('import-section');
 const importJson = document.getElementById('import-json');
 const importFile = document.getElementById('import-file');
 const importMessage = document.getElementById('import-message');
@@ -1708,40 +1854,46 @@ function updateLinksBadge(count) {
     }
 }
 
-// 切换设置分区：通用 / 外观 / 快捷链接 / 备份 / 快捷键 / 关于
+// 切换设置分区；导航采用 roving tabindex（只有当前项可 Tab 聚焦）
 function showSettingsSection(sectionName) {
-    Object.keys(settingsNavItems).forEach(key => {
+    SETTINGS_SECTIONS.forEach(key => {
         const active = key === sectionName;
         settingsNavItems[key].classList.toggle('active', active);
         settingsNavItems[key].setAttribute('aria-selected', String(active));
+        settingsNavItems[key].tabIndex = active ? 0 : -1;
         settingsSections[key].hidden = !active;
     });
+    document.getElementById('settings-section-title').textContent = SETTINGS_SECTION_TITLES[sectionName];
+    document.querySelector('.settings-content').scrollTop = 0;
     settingsNavIndicator.hide();
 
-    if (sectionName === 'appearance') {
-        schemeManager.updateSchemeCards();
-    } else if (sectionName === 'general') {
+    if (sectionName === 'general') {
         updateHourFormatControl();
         updateOpenBehaviorControl();
+    } else if (sectionName === 'appearance') {
+        themeManager.updateThemeModeControl();
+        schemeManager.updateSchemeCards();
+    } else if (sectionName === 'engines') {
         renderEngineSettings();
     } else if (sectionName === 'links') {
         renderSettingsLinks();
     } else if (sectionName === 'backup') {
-        storage.get('quickLinks', function (data) {
-            const count = (data.quickLinks || defaultLinks).length;
-            exportHint.textContent = `将 ${count} 个快捷链接导出为 JSON`;
-        });
-        importMessage.style.display = 'none';
+        updateBackupHints();
+        importMessage.hidden = true;
     } else if (sectionName === 'shortcuts') {
         shortcutManager.renderShortcutList();
     }
 }
 
+// 打开设置：默认停留在"通用"，焦点放在当前导航项
+function openSettings(sectionName) {
+    showSettingsSection(sectionName || 'general');
+    openModal(settingsModal, settingsNavItems[sectionName || 'general']);
+}
+
 function initSettings() {
-    // 打开设置弹窗，默认停留在外观分区
     settingsBtn.addEventListener('click', function () {
-        openModal(settingsModal);
-        showSettingsSection('general');
+        openSettings();
     });
 
     // 关闭设置弹窗
@@ -1752,19 +1904,28 @@ function initSettings() {
         }
     });
 
-    // 分区切换（点击 + 方向键）
-    const navList = Object.values(settingsNavItems);
-    navList.forEach(function (item, index) {
+    // 分区切换：点击；方向键（纵向/窄屏横向均可）、Home / End
+    SETTINGS_SECTIONS.forEach(function (key, index) {
+        const item = settingsNavItems[key];
         item.addEventListener('click', function () {
-            showSettingsSection(item.id.replace('nav-', ''));
+            showSettingsSection(key);
         });
         item.addEventListener('keydown', function (e) {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            let nextIndex = null;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                nextIndex = (index + 1) % SETTINGS_SECTIONS.length;
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                nextIndex = (index - 1 + SETTINGS_SECTIONS.length) % SETTINGS_SECTIONS.length;
+            } else if (e.key === 'Home') {
+                nextIndex = 0;
+            } else if (e.key === 'End') {
+                nextIndex = SETTINGS_SECTIONS.length - 1;
+            }
+            if (nextIndex !== null) {
                 e.preventDefault();
-                const offset = e.key === 'ArrowDown' ? 1 : -1;
-                const nextIndex = (index + offset + navList.length) % navList.length;
-                navList[nextIndex].focus();
-                showSettingsSection(navList[nextIndex].id.replace('nav-', ''));
+                const nextKey = SETTINGS_SECTIONS[nextIndex];
+                showSettingsSection(nextKey);
+                settingsNavItems[nextKey].focus();
             }
         });
     });
@@ -1795,7 +1956,7 @@ function initSettings() {
         });
     }
 
-    // 文件导入
+    // 文件导入：选择文件即导入（选择本身就是明确的操作），可撤销
     importFile.addEventListener('change', function (e) {
         const file = e.target.files[0];
         if (file) {
@@ -1805,7 +1966,7 @@ function initSettings() {
                     const data = JSON.parse(e.target.result);
                     handleImportData(data);
                 } catch (err) {
-                    showImportMessage('JSON 格式错误', 'error');
+                    showImportMessage('无法读取这个文件：内容不是有效的 JSON。');
                 }
             };
             reader.readAsText(file);
@@ -1814,17 +1975,44 @@ function initSettings() {
         }
     });
 
-    // 粘贴导入
-    importJson.addEventListener('input', function () {
-        const text = importJson.value.trim();
-        if (text) {
-            try {
-                const data = JSON.parse(text);
-                handleImportData(data);
-            } catch (err) {
-                // 正在输入，不显示错误
-            }
+    // "选择文件"是 label，补上键盘触发
+    const importFileBtn = document.getElementById('import-file-btn');
+    importFileBtn.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            importFile.click();
         }
+    });
+
+    // 粘贴导入：有内容时才可点击"导入"，点击后才替换
+    const importJsonBtn = document.getElementById('import-json-btn');
+    importJson.addEventListener('input', function () {
+        importJsonBtn.disabled = !importJson.value.trim();
+        importMessage.hidden = true;
+    });
+    importJsonBtn.addEventListener('click', function () {
+        const text = importJson.value.trim();
+        if (!text) return;
+        try {
+            const data = JSON.parse(text);
+            if (handleImportData(data)) {
+                importJson.value = '';
+                importJsonBtn.disabled = true;
+            }
+        } catch (err) {
+            showImportMessage('无法导入：粘贴的内容不是有效的 JSON。');
+            importJson.focus();
+        }
+    });
+}
+
+// 备份分区的说明文字：显示当前链接数量，导入前就知道会替换多少
+function updateBackupHints() {
+    storage.get('quickLinks', function (data) {
+        const count = (data.quickLinks || defaultLinks).length;
+        exportHint.textContent = `共 ${count} 个链接，保存为 JSON，可在其他设备导入`;
+        document.getElementById('import-hint').textContent =
+            `导入会替换当前的 ${count} 个快捷链接，导入后可以撤销。`;
     });
 }
 
@@ -1853,7 +2041,7 @@ function loadAboutVersion() {
             }
         })
         .catch(function () {
-            versionEl.textContent = '';
+            versionEl.textContent = '—';
         });
 }
 
@@ -1868,23 +2056,54 @@ function renderEngineSettings() {
         ...engineManager.customEngines.map(e => ({ ...e, custom: true }))
     ];
 
-    all.forEach(engine => {
-        const row = document.createElement('label');
-        row.className = 'engine-row';
+    const onlyOneEnabled = engineManager.enabledIds.length <= 1;
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = engineManager.enabledIds.includes(engine.id);
-        checkbox.setAttribute('aria-label', `启用 ${engine.label}`);
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
+    all.forEach(engine => {
+        const enabled = engineManager.enabledIds.includes(engine.id);
+        const isCurrent = engine.id === engineManager.currentEngineId;
+
+        const row = document.createElement('label');
+        row.className = 'settings-row settings-row-toggle';
+
+        const icon = document.createElement('span');
+        icon.className = 'engine-row-icon';
+        icon.appendChild(engineMenu.buildIcon(engine));
+
+        const text = document.createElement('span');
+        text.className = 'settings-row-text';
+        const title = document.createElement('span');
+        title.className = 'settings-row-title';
+        title.textContent = engine.label;
+        if (isCurrent) {
+            const tag = document.createElement('span');
+            tag.className = 'settings-row-tag';
+            tag.textContent = '当前使用';
+            title.appendChild(tag);
+        }
+        text.appendChild(title);
+        // 自定义引擎显示网址，便于辨认；内置引擎不显示冗长 URL
+        if (engine.custom) {
+            const desc = document.createElement('span');
+            desc.className = 'settings-row-desc';
+            desc.textContent = engine.url;
+            text.appendChild(desc);
+        }
+
+        const toggle = document.createElement('input');
+        toggle.type = 'checkbox';
+        toggle.className = 'switch';
+        toggle.setAttribute('role', 'switch');
+        toggle.checked = enabled;
+        toggle.setAttribute('aria-label', `启用 ${engine.label}`);
+        // 至少保留一个启用引擎：最后一个开启的引擎不可关闭
+        if (enabled && onlyOneEnabled) {
+            toggle.disabled = true;
+            row.title = '至少需要开启一个搜索引擎';
+        }
+        toggle.addEventListener('change', () => {
+            if (toggle.checked) {
                 engineManager.enabledIds.push(engine.id);
             } else {
-                // 至少保留一个启用引擎
-                if (engineManager.enabledIds.length <= 1) {
-                    checkbox.checked = true;
-                    return;
-                }
                 engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engine.id);
                 if (engineManager.currentEngineId === engine.id) {
                     engineManager.currentEngineId = engineManager.getEngines()[0].id;
@@ -1896,17 +2115,8 @@ function renderEngineSettings() {
             });
         });
 
-        const label = document.createElement('span');
-        label.className = 'engine-label';
-        label.textContent = engine.label;
-
-        const urlPreview = document.createElement('span');
-        urlPreview.className = 'engine-url-preview';
-        urlPreview.textContent = engine.url.replace('{q}', '…');
-
-        row.appendChild(checkbox);
-        row.appendChild(label);
-        row.appendChild(urlPreview);
+        row.appendChild(icon);
+        row.appendChild(text);
 
         if (engine.custom) {
             const actions = document.createElement('span');
@@ -1931,15 +2141,7 @@ function renderEngineSettings() {
             deleteButton.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                engineManager.customEngines = engineManager.customEngines.filter(c => c.id !== engine.id);
-                engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engine.id);
-                if (!engineManager.getEngines().some(en => en.id === engineManager.currentEngineId)) {
-                    engineManager.currentEngineId = engineManager.getEngines()[0].id;
-                }
-                engineManager.save(() => {
-                    updateEngineIcon();
-                    renderEngineSettings();
-                });
+                deleteCustomEngine(engine.id);
             });
 
             actions.appendChild(editButton);
@@ -1947,7 +2149,41 @@ function renderEngineSettings() {
             row.appendChild(actions);
         }
 
+        row.appendChild(toggle);
         list.appendChild(row);
+    });
+}
+
+// 删除自定义引擎：立即生效，提示中可撤销
+function deleteCustomEngine(engineId) {
+    const snapshot = {
+        customEngines: engineManager.customEngines.slice(),
+        enabledIds: engineManager.enabledIds.slice(),
+        currentEngineId: engineManager.currentEngineId
+    };
+    const removed = engineManager.customEngines.find(c => c.id === engineId);
+    engineManager.customEngines = engineManager.customEngines.filter(c => c.id !== engineId);
+    engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engineId);
+    if (!engineManager.getEngines().some(en => en.id === engineManager.currentEngineId)) {
+        engineManager.currentEngineId = engineManager.getEngines()[0].id;
+    }
+    // 删除后若没有启用的引擎，回退启用第一个内置引擎
+    if (!engineManager.enabledIds.length) {
+        engineManager.enabledIds = [BUILTIN_ENGINES[0].id];
+        engineManager.currentEngineId = BUILTIN_ENGINES[0].id;
+    }
+    const refresh = () => {
+        updateEngineIcon();
+        renderEngineSettings();
+    };
+    engineManager.save(refresh);
+    toast.show(`已删除“${removed ? removed.label : '搜索引擎'}”`, {
+        onAction: () => {
+            engineManager.customEngines = snapshot.customEngines;
+            engineManager.enabledIds = snapshot.enabledIds;
+            engineManager.currentEngineId = snapshot.currentEngineId;
+            engineManager.save(refresh);
+        }
     });
 }
 
@@ -1970,7 +2206,8 @@ function openEngineEditor(mode, engineId) {
         nameInput.value = '';
         urlInput.value = '';
     }
-    openModal(engineModal);
+    document.getElementById('engine-modal-title').textContent = mode === 'edit' ? '编辑搜索引擎' : '添加搜索引擎';
+    openModal(engineModal, nameInput);
 }
 
 function closeEngineModal() {
@@ -2021,7 +2258,10 @@ function initEngineSettings() {
         if (e.target === engineModalElement) closeEngineModal();
     });
     document.getElementById('cancel-engine').addEventListener('click', closeEngineModal);
-    document.getElementById('save-engine').addEventListener('click', handleSaveEngine);
+    engineModalElement.querySelector('.modal-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleSaveEngine();
+    });
 
     const addEngineBtn = document.getElementById('settings-add-engine');
     if (addEngineBtn) {
@@ -2046,9 +2286,9 @@ function getExportJson(callback) {
 function exportToClipboard() {
     getExportJson(function (json) {
         navigator.clipboard.writeText(json).then(function () {
-            showImportMessage('已复制到剪贴板', 'success');
+            toast.show('已复制到剪贴板');
         }).catch(function () {
-            showImportMessage('复制失败，请重试', 'error');
+            toast.show('复制失败：浏览器拒绝访问剪贴板，请改用“下载文件”');
         });
     });
 }
@@ -2062,37 +2302,45 @@ function exportToFile() {
         a.download = 'quick-links-backup.json';
         a.click();
         URL.revokeObjectURL(url);
-        showImportMessage('已导出到文件', 'success');
+        toast.show('已下载 quick-links-backup.json');
     });
 }
 
+// 校验并导入；成功返回 true。导入替换全部链接，提示中可撤销
 function handleImportData(data) {
     if (!data || !data.links || !Array.isArray(data.links)) {
-        showImportMessage('JSON 格式错误：缺少 links 数组', 'error');
-        return;
+        showImportMessage('无法导入：缺少 links 数组。请使用本扩展导出的备份文件。');
+        return false;
     }
 
     // 验证链接格式
     for (const link of data.links) {
-        if (!link.name || !link.url) {
-            showImportMessage('JSON 格式错误：链接缺少 name 或 url', 'error');
-            return;
+        if (!link || !link.name || !link.url) {
+            showImportMessage('无法导入：有链接缺少 name 或 url。');
+            return false;
         }
     }
 
-    // 保存并更新（自动补齐缺失的图标字段）
+    importMessage.hidden = true;
     const links = data.links.map(normalizeLink);
-    storage.set({ 'quickLinks': links }, function () {
-        renderLinks(links);
-        showImportMessage('导入成功！', 'success');
-        setTimeout(closeSettingsModal, 1500);
+    storage.get('quickLinks', function (current) {
+        const previous = (current.quickLinks || defaultLinks).slice();
+        saveLinks(links);
+        updateBackupHints();
+        toast.show(`已导入 ${links.length} 个快捷链接`, {
+            onAction: () => {
+                saveLinks(previous);
+                updateBackupHints();
+            }
+        });
     });
+    return true;
 }
 
-function showImportMessage(text, type) {
+// 导入错误：就近显示在导入区下方
+function showImportMessage(text) {
     importMessage.textContent = text;
-    importMessage.className = 'import-message ' + type;
-    importMessage.style.display = 'block';
+    importMessage.hidden = false;
 }
 
 // 初始化页面
