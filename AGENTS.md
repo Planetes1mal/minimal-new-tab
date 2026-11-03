@@ -191,6 +191,7 @@ minimal-new-tab/
 ├── icons/
 │   ├── *.svg          # Inline SVG icons
 │   └── png/           # Extension icons (16/48/128px)
+├── fonts/              # Clock font subset (Bricolage Grotesque, OFL) + license
 ├── CONTEXT.md          # Domain glossary (single context)
 ├── docs/               # Local working docs — agents config, ADRs (gitignored)
 ├── reference/          # Reference projects (gitignored)

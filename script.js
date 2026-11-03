@@ -490,13 +490,21 @@ function updateDateTime() {
     const hoursText = hourFormat === '12' ? String(hours) : String(hours).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const timeEl = document.getElementById('time');
-    // 使用可单独控制的冒号元素，便于动画
-    timeEl.innerHTML = `${hoursText}<span class="colon">:</span>${minutes}${period}`;
+    // 仅在分钟或制式变化时重建 DOM，避免每秒重启冒号的呼吸动画
+    const timeKey = `${hoursText}:${minutes}${period}`;
+    if (timeEl.dataset.value !== timeKey) {
+        timeEl.dataset.value = timeKey;
+        const periodHtml = period ? `<span class="period">${period.trim()}</span>` : '';
+        timeEl.innerHTML = `${hoursText}<span class="colon">:</span>${minutes}${periodHtml}`;
+    }
 
-    // 更新日期 - 紧凑大写英文格式，如 MONDAY · AUG 11
-    const options = { weekday: 'long', month: 'short', day: 'numeric' };
-    const dateText = now.toLocaleDateString('en-US', options).toUpperCase().replace(',', ' ·');
-    document.getElementById('date').textContent = dateText;
+    // 更新日期 - 中文短句，如 11月3日 星期二
+    const weekday = now.toLocaleDateString('zh-CN', { weekday: 'long' });
+    const dateText = `${now.getMonth() + 1}月${now.getDate()}日 ${weekday}`;
+    const dateEl = document.getElementById('date');
+    if (dateEl.textContent !== dateText) {
+        dateEl.textContent = dateText;
+    }
 }
 
 // 每秒更新一次时间

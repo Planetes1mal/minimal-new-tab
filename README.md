@@ -27,6 +27,7 @@ minimal-new-tab/
 ├── styles.css       # 样式（CSS 变量 + 配色方案）
 ├── script.js        # 全部逻辑
 ├── icons/           # 图标
+├── fonts/           # 时钟字体子集（Bricolage Grotesque，SIL OFL 1.1）
 └── CONTEXT.md       # 领域术语表
 ```
 
