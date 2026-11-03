@@ -6,7 +6,7 @@ This document provides guidelines and instructions for agentic coding agents wor
 
 This is a Chrome/Edge Extension (Manifest V3) that provides a minimalist new tab page with:
 - Time and date display
-- Search functionality with engine switching (Google/Bing)
+- Search with seven built-in engines plus custom engines (`{q}` URL templates)
 - Quick links management with drag-and-drop reordering
 - Theme system (light/dark/system-following)
 
@@ -80,14 +80,14 @@ To verify changes:
 - Use `flexbox` for layouts
 - Use `rem` for font sizes, `px` for borders/shadows
 - Prefer `border-radius: 12px` to `border-radius: 50%` for modern look
-- Use `backdrop-filter: blur()` for glassmorphism effects
 - Use `cubic-bezier(0.25, 1, 0.5, 1)` for smooth transitions
 
 #### Theme System
 - Support three modes: `light`, `dark`, and `null` (follow system)
 - Define base variables in `:root`
 - Override with `@media (prefers-color-scheme: dark)` for system themes
-- Use `.light` / `.dark` classes on `<body>` for manual overrides
+- Use `.light` / `.dark` classes and `data-scheme` on `<html>` for manual overrides
+  (so the root background matches before `<body>` fades in)
 - Set styles in JavaScript via `element.style.setProperty()` for dynamic themes
 
 ### JavaScript
@@ -97,7 +97,8 @@ To verify changes:
 #### Structure
 - Use **object literal pattern** for module-like organization
 - Use **IIFE pattern** if module isolation is needed
-- Keep all code in a single file for simplicity
+- Keep all code in a single file for simplicity; the only exception is `boot.js`, a tiny
+  script loaded in `<head>` that applies the cached theme/scheme to `<html>` before first paint
 
 ```javascript
 const themeManager = {
@@ -187,6 +188,7 @@ minimal-new-tab/
 ├── manifest.json       # Extension config (Manifest V3)
 ├── newtab.html         # Main HTML page
 ├── styles.css          # All styles (CSS variables + color schemes)
+├── boot.js             # First-paint theme bootstrap (reads preferencesCache)
 ├── script.js           # All JavaScript logic
 ├── icons/
 │   ├── *.svg          # Inline SVG icons
@@ -236,7 +238,11 @@ Current permissions: `storage`
 - No `activeTab` needed for new tab pages
 
 ### Chrome Storage Limits
-- `chrome.storage.sync`: 100KB limit, ~512 keys
+- `chrome.storage.sync`: 100KB total, 512 items, **8KB per item** (`QUOTA_BYTES_PER_ITEM`)
+- All quick links live in one item (`quickLinks`), so roughly 100+ short links fit;
+  `storage.set` checks the size first and every write reports errors to the user
+- Preferences live in one `preferences` item; `preferencesCache` in localStorage is
+  only a first-paint cache
 - Use `chrome.storage.local` for larger data if needed
 
 ### Security

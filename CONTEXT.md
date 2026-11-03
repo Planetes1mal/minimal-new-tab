@@ -3,9 +3,22 @@
 ## Glossary
 
 ### 快捷链接 (quick link)
-启动器中的目的地条目：名称 + 网址 + 图标模式（极简生成/网站默认/指定 URL）。
-数据以 `quickLinks` 键存储（扩展环境为 `chrome.storage.sync`，测试环境回退
-localStorage），备份 JSON 格式为 `{version: 1, links: [...]}`。
+启动器中的目的地条目：名称 + 网址（只接受 http / https，未写协议时补 `https://`），
+以站点标记圆点表示，不显示网站图标。数据以 `quickLinks` 键存储为 `[{name, url}]`
+（扩展环境为 `chrome.storage.sync`，测试环境回退 localStorage）。
+条目以「名称 + 网址」识别身份，删除、编辑、排序都在最新列表中按身份定位，
+所有修改串行执行，避免快速连续操作或多个标签页之间互相覆盖。
+
+### 偏好设置 (preferences)
+主题模式、配色方案、时间格式、打开方式、自定义快捷键合为一个对象，存于同步存储的
+`preferences` 键，随浏览器账号跨设备同步。localStorage 的 `preferencesCache` 只是
+首屏缓存，由 `boot.js` 在页面渲染前同步读取，避免闪烁。旧版本分散在 localStorage
+的 `theme` / `colorScheme` / `hourFormat` / `openInNewTab` / `customShortcuts`
+首次加载时自动迁移并清除。
+
+### 备份 (backup)
+导出格式 v2：`{version: 2, links, searchEngines: {custom, enabled, current}, preferences}`。
+导入兼容 v1（仅 `links`）；导入前逐项校验，导入后可撤销。
 
 ### 配色方案 (color scheme)
 一组完整设计过的调色家族，覆盖全部 `--c-*` 颜色变量，并以**浅色/深色两个变体**成对提供。
@@ -16,7 +29,7 @@ localStorage），备份 JSON 格式为 `{version: 1, links: [...]}`。
 `light` / `dark` / `null`（跟随系统）三种模式之一，决定当前配色方案内使用哪个明暗变体。
 与配色方案**正交**：切换主题模式不换方案，切换方案不换模式。
 设置 → 外观 →「显示模式」可在三者间选择；角落按钮只在浅色/深色间快速切换。
-持久化在 `theme` 键。
+持久化在偏好设置的 `theme` 字段；`light` / `dark` 类加在 `<html>` 上。
 
 ### 语义色 (semantic colors)
 表达状态含义的颜色：`danger`（危险/删除/错误）、`success`（成功/导入完成）及其强变体
@@ -30,7 +43,7 @@ localStorage），备份 JSON 格式为 `{version: 1, links: [...]}`。
 
 ### 时间格式 (hour format)
 时钟的小时显示制式：`24`（默认）或 `12`。12 小时制输出 `2:35 PM`。
-持久化在 `hourFormat` 键，与配色方案同为页面外观偏好。
+持久化在偏好设置的 `hourFormat` 字段。
 
 ### 极简表面 (minimal surface)
 本页面的表面语言约定：**搜索框是唯一容器**（圆角面，静止时只比底色深一级色阶，
@@ -52,11 +65,12 @@ localStorage），备份 JSON 格式为 `{version: 1, links: [...]}`。
 ### 键盘快捷键 (keyboard shortcut)
 页面行为的键盘触发方式：聚焦搜索、打开设置、切换主题、关闭弹窗。
 组合键以 `Mod+Key` 字符串表示（如 `Ctrl+Shift+L`），可自定义并持久化在
-`customShortcuts` 键；输入框聚焦时不触发。
+偏好设置的 `shortcuts` 字段；输入框聚焦时不触发。Tab、回车、空格、方向键等导航键
+不加 Ctrl/Alt/Meta 时不能绑定；关闭设置或切换分区会结束录制。
 
 ### 打开方式 (open behavior)
-链接与搜索结果的打开位置：新标签页（默认，`window.open`）或当前标签页
-（`location.href`）。持久化在 `openInNewTab` 键。
+链接与搜索结果的打开位置：当前标签页（默认，`location.href`，与浏览器自带新标签页
+一致）或新标签页（`window.open`）。持久化在偏好设置的 `openInNewTab` 字段。
 
 ### 搜索引擎 (search engine)
 搜索提交使用的服务。内置 7 个：Google、Bing、百度、DuckDuckGo、Ecosia、

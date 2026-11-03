@@ -1,61 +1,277 @@
-// 主题管理
-const themeManager = {
-    // 主题状态
-    currentTheme: null, // 'light', 'dark', 或 null (跟随系统)
+// 存储兼容层：扩展环境用 chrome.storage.sync（跨设备同步），开发环境回退 localStorage。
+// 回调统一带上错误对象：get(key, (data, error)) / set(items, (error)) / remove(key, (error))
+const HAS_CHROME_STORAGE = typeof chrome !== 'undefined' && !!(chrome.storage && chrome.storage.sync);
+// chrome.storage.sync 单项上限 8192 字节（键名 + JSON 值），超出会写入失败
+const SYNC_ITEM_LIMIT = 8192;
 
-    // 初始化主题
+const storage = {
+    get(key, callback) {
+        if (HAS_CHROME_STORAGE) {
+            chrome.storage.sync.get(key, (data) => {
+                const error = chrome.runtime.lastError;
+                if (error) console.error('Error reading chrome.storage:', error.message);
+                callback(data || {}, error);
+            });
+            return;
+        }
+        try {
+            const keys = typeof key === 'string' ? [key] : key;
+            const data = {};
+            keys.forEach(k => {
+                const value = localStorage.getItem(k);
+                if (value !== null) data[k] = JSON.parse(value);
+            });
+            callback(data);
+        } catch (e) {
+            console.error('Error getting data from localStorage', e);
+            callback({}, e);
+        }
+    },
+
+    set(items, callback) {
+        // 提前检查单项大小，给出明确原因（chrome 也会拒绝，但错误信息不友好）
+        const oversized = Object.keys(items).find(k =>
+            new Blob([k + JSON.stringify(items[k])]).size > SYNC_ITEM_LIMIT
+        );
+        if (oversized) {
+            const error = new Error(`QUOTA_BYTES_PER_ITEM: ${oversized}`);
+            error.quota = true;
+            console.error('Item too large for sync storage:', oversized);
+            if (callback) callback(error);
+            return;
+        }
+        if (HAS_CHROME_STORAGE) {
+            chrome.storage.sync.set(items, () => {
+                const error = chrome.runtime.lastError;
+                if (error) console.error('Error writing chrome.storage:', error.message);
+                if (callback) callback(error);
+            });
+            return;
+        }
+        try {
+            Object.keys(items).forEach(k => {
+                localStorage.setItem(k, JSON.stringify(items[k]));
+            });
+            if (callback) callback();
+        } catch (e) {
+            console.error('Error saving data to localStorage', e);
+            if (callback) callback(e);
+        }
+    },
+
+    remove(key, callback) {
+        if (HAS_CHROME_STORAGE) {
+            chrome.storage.sync.remove(key, () => {
+                const error = chrome.runtime.lastError;
+                if (error) console.error('Error removing chrome.storage key:', error.message);
+                if (callback) callback(error);
+            });
+            return;
+        }
+        try {
+            (Array.isArray(key) ? key : [key]).forEach(k => localStorage.removeItem(k));
+            if (callback) callback();
+        } catch (e) {
+            console.error('Error removing data from localStorage', e);
+            if (callback) callback(e);
+        }
+    },
+
+    // 监听其他标签页（或其他设备同步过来）的修改：callback({ key: newValue })
+    onChange(callback) {
+        if (HAS_CHROME_STORAGE) {
+            chrome.storage.onChanged.addListener((changes, area) => {
+                if (area !== 'sync') return;
+                const values = {};
+                Object.keys(changes).forEach(k => { values[k] = changes[k].newValue; });
+                callback(values);
+            });
+            return;
+        }
+        window.addEventListener('storage', (e) => {
+            if (!e.key) return;
+            try {
+                callback({ [e.key]: e.newValue === null ? undefined : JSON.parse(e.newValue) });
+            } catch (err) {
+                // 非 JSON 的本地键（如首屏缓存）不属于同步数据，忽略
+            }
+        });
+    }
+};
+
+// 写入失败时的统一提示
+function describeSaveError(error) {
+    if (error && (error.quota || /QUOTA/i.test(error.message || ''))) {
+        return '没有保存：数据超出浏览器同步存储的上限（单项 8 KB）。请删除一些快捷链接后重试。';
+    }
+    return '没有保存：浏览器存储写入失败，请稍后重试。';
+}
+
+// 偏好设置：统一存在同步存储的 preferences 键里（跨设备同步、随备份导出）。
+// localStorage 的 preferencesCache 只是首屏缓存，供 boot.js 同步读取以避免闪烁。
+const PREF_DEFAULTS = {
+    theme: null,            // 'light' | 'dark' | null（跟随系统）
+    colorScheme: 'forest',  // forest | ocean | amber | slate
+    hourFormat: '24',       // '24' | '12'
+    openInNewTab: false,    // 默认在当前标签页打开（与浏览器自带新标签页一致）
+    shortcuts: {}           // 自定义快捷键：{ action: 'Ctrl+Shift+L' }
+};
+const PREFS_CACHE_KEY = 'preferencesCache';
+const LEGACY_PREF_KEYS = ['theme', 'colorScheme', 'hourFormat', 'openInNewTab', 'customShortcuts'];
+const COLOR_SCHEMES = { forest: '森绿', ocean: '碧蓝', amber: '琥珀', slate: '岩墨' };
+
+const prefs = {
+    data: { ...PREF_DEFAULTS, shortcuts: {} },
+
+    // 只保留合法值，其余回退默认（存储与备份都可能来自旧版本或被手改）
+    sanitize(raw) {
+        const source = raw && typeof raw === 'object' ? raw : {};
+        const shortcuts = {};
+        if (source.shortcuts && typeof source.shortcuts === 'object') {
+            Object.keys(SHORTCUT_ACTIONS).forEach(action => {
+                const key = source.shortcuts[action];
+                if (typeof key === 'string' && key) shortcuts[action] = key;
+            });
+        }
+        return {
+            theme: source.theme === 'light' || source.theme === 'dark' ? source.theme : null,
+            colorScheme: COLOR_SCHEMES[source.colorScheme] ? source.colorScheme : 'forest',
+            hourFormat: source.hourFormat === '12' ? '12' : '24',
+            openInNewTab: source.openInNewTab === true,
+            shortcuts
+        };
+    },
+
+    // 旧版本的分散键（均在 localStorage）
+    readLegacy() {
+        try {
+            if (!LEGACY_PREF_KEYS.some(k => localStorage.getItem(k) !== null)) return null;
+            let shortcuts = {};
+            try {
+                shortcuts = JSON.parse(localStorage.getItem('customShortcuts') || '{}') || {};
+            } catch (e) {
+                shortcuts = {};
+            }
+            return {
+                theme: localStorage.getItem('theme'),
+                colorScheme: localStorage.getItem('colorScheme'),
+                hourFormat: localStorage.getItem('hourFormat'),
+                // 旧版只在用户关闭时存 'false'，缺省表示开启；新版默认关闭（当前标签页），
+                // 因此旧值一律按新默认处理
+                openInNewTab: false,
+                shortcuts
+            };
+        } catch (e) {
+            console.error('Error reading legacy preferences:', e);
+            return null;
+        }
+    },
+
+    clearLegacy() {
+        try {
+            LEGACY_PREF_KEYS.forEach(k => localStorage.removeItem(k));
+        } catch (e) {
+            console.error('Error clearing legacy preferences:', e);
+        }
+    },
+
+    writeCache() {
+        try {
+            localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify(this.data));
+        } catch (e) {
+            console.error('Error caching preferences:', e);
+        }
+    },
+
+    // 同步阶段：用首屏缓存（或旧键）先渲染，保证首帧正确
+    initFromCache() {
+        let cached = null;
+        try {
+            cached = JSON.parse(localStorage.getItem(PREFS_CACHE_KEY) || 'null');
+        } catch (e) {
+            console.error('Error reading preferences cache:', e);
+        }
+        this.data = this.sanitize(cached || this.readLegacy());
+    },
+
+    // 异步阶段：以同步存储为准；首次运行时把本地偏好迁移过去
+    load(callback) {
+        storage.get('preferences', (result, error) => {
+            if (!error && result.preferences) {
+                this.data = this.sanitize(result.preferences);
+                this.writeCache();
+                this.clearLegacy();
+            } else if (!error) {
+                this.save();
+            }
+            if (callback) callback();
+        });
+    },
+
+    save() {
+        this.writeCache();
+        storage.set({ preferences: this.data }, (error) => {
+            if (error) {
+                toast.show(describeSaveError(error));
+                return;
+            }
+            this.clearLegacy();
+        });
+    },
+
+    // 修改部分偏好并保存
+    update(partial) {
+        this.data = this.sanitize({ ...this.data, ...partial });
+        this.save();
+    },
+
+    // 其他标签页或设备修改了偏好
+    receive(raw) {
+        const next = this.sanitize(raw);
+        if (JSON.stringify(next) === JSON.stringify(this.data)) return;
+        this.data = next;
+        this.writeCache();
+        applyPreferences();
+    }
+};
+
+// 把当前偏好应用到页面各处
+function applyPreferences() {
+    themeManager.applyTheme();
+    schemeManager.applyScheme();
+    schemeManager.updateSchemeCards();
+    updateDateTime();
+    updateHourFormatControl();
+    updateOpenBehaviorControl();
+    shortcutManager.renderShortcutList();
+}
+
+// 主题管理：主题模式加在 <html> 上（与 boot.js 一致），根元素背景随之变化
+const themeManager = {
+    get currentTheme() {
+        return prefs.data.theme;
+    },
+
     init() {
-        this.loadTheme();
         this.applyTheme();
         this.setupThemeToggle();
     },
 
-    // 加载保存的主题设置
-    loadTheme() {
-        try {
-            const savedTheme = localStorage.getItem('theme');
-            this.currentTheme = savedTheme || null;
-        } catch (e) {
-            console.error('Error loading theme:', e);
-            this.currentTheme = null;
-        }
-    },
-
-    // 保存主题设置
-    saveTheme(theme) {
-        try {
-            if (theme) {
-                localStorage.setItem('theme', theme);
-            } else {
-                localStorage.removeItem('theme');
-            }
-        } catch (e) {
-            console.error('Error saving theme:', e);
-        }
-    },
-
-    // 应用主题
     applyTheme() {
+        const root = document.documentElement;
         const themeToggle = document.getElementById('theme-toggle');
-        const body = document.body;
-
-        body.classList.remove('light', 'dark');
+        root.classList.remove('light', 'dark');
         themeToggle.classList.remove('light', 'dark');
-
-        if (this.currentTheme === 'dark') {
-            body.classList.add('dark');
-            themeToggle.classList.add('dark');
-        } else if (this.currentTheme === 'light') {
-            body.classList.add('light');
-            themeToggle.classList.add('light');
+        if (this.currentTheme) {
+            root.classList.add(this.currentTheme);
+            themeToggle.classList.add(this.currentTheme);
         }
         this.updateThemeModeControl();
     },
 
     // 设置页选择显示模式：'light' / 'dark' / 'system'（跟随系统存为 null）
     setTheme(mode) {
-        this.currentTheme = mode === 'light' || mode === 'dark' ? mode : null;
-        this.saveTheme(this.currentTheme);
+        prefs.update({ theme: mode === 'light' || mode === 'dark' ? mode : null });
         this.applyTheme();
     },
 
@@ -66,20 +282,13 @@ const themeManager = {
         if (radio) radio.checked = true;
     },
 
-    // 切换主题
+    // 角落按钮：在浅色与深色之间快速切换（以当前实际显示为准）
     toggleTheme() {
-        // 获取当前实际显示的主题（无论是手动设置还是跟随系统）
         const isCurrentlyDark = this.currentTheme === 'dark' ||
             (this.currentTheme === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-        // 直接切换到相反的主题
-        this.currentTheme = isCurrentlyDark ? 'light' : 'dark';
-
-        this.saveTheme(this.currentTheme);
-        this.applyTheme();
+        this.setTheme(isCurrentlyDark ? 'light' : 'dark');
     },
 
-    // 设置主题切换按钮
     setupThemeToggle() {
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
@@ -87,84 +296,46 @@ const themeManager = {
                 this.toggleTheme();
             });
         }
-
-        // 监听系统主题变化
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            if (this.currentTheme === null) {
-                this.applyTheme();
-            }
-        });
     }
 };
 
 // 配色方案管理（与主题模式正交：方案决定色系，主题模式决定明暗变体）
 const schemeManager = {
-    // 当前方案；forest 为默认方案，不写 data-scheme 属性
-    currentScheme: 'forest',
-    SCHEMES: {
-        forest: '森绿',
-        ocean: '碧蓝',
-        amber: '琥珀',
-        slate: '岩墨'
+    get currentScheme() {
+        return prefs.data.colorScheme;
     },
 
     init() {
-        this.loadScheme();
         this.applyScheme();
         this.setupSchemePicker();
     },
 
-    // 加载保存的方案设置
-    loadScheme() {
-        try {
-            const savedScheme = localStorage.getItem('colorScheme');
-            if (savedScheme && this.SCHEMES[savedScheme]) {
-                this.currentScheme = savedScheme;
-            }
-        } catch (e) {
-            console.error('Error loading color scheme:', e);
-            this.currentScheme = 'forest';
-        }
-    },
-
-    // 保存方案设置（默认方案不落盘，保持存量用户存储不变）
-    saveScheme(scheme) {
-        try {
-            if (scheme === 'forest') {
-                localStorage.removeItem('colorScheme');
-            } else {
-                localStorage.setItem('colorScheme', scheme);
-            }
-        } catch (e) {
-            console.error('Error saving color scheme:', e);
-        }
-    },
-
-    // 应用方案：只有非默认方案需要 data-scheme 属性
+    // 应用方案：只有非默认方案需要 data-scheme 属性（加在 <html> 上）
     applyScheme() {
+        const root = document.documentElement;
         if (this.currentScheme === 'forest') {
-            delete document.body.dataset.scheme;
+            delete root.dataset.scheme;
         } else {
-            document.body.dataset.scheme = this.currentScheme;
+            root.dataset.scheme = this.currentScheme;
         }
     },
 
-    // 选择并应用方案
     selectScheme(scheme) {
-        if (!this.SCHEMES[scheme] || scheme === this.currentScheme) {
+        if (!COLOR_SCHEMES[scheme] || scheme === this.currentScheme) {
             return;
         }
-        this.currentScheme = scheme;
-        this.saveScheme(scheme);
+        prefs.update({ colorScheme: scheme });
         this.applyScheme();
         this.updateSchemeCards();
     },
 
-    // 同步外观区的方案卡选中态
+    // 同步方案卡选中态；单选组采用 roving tabindex（只有选中项可 Tab 聚焦）
     updateSchemeCards() {
         const cards = document.querySelectorAll('.scheme-card');
         cards.forEach(card => {
-            card.setAttribute('aria-checked', String(card.dataset.scheme === this.currentScheme));
+            const checked = card.dataset.scheme === this.currentScheme;
+            card.setAttribute('aria-checked', String(checked));
+            card.tabIndex = checked ? 0 : -1;
         });
     },
 
@@ -190,46 +361,25 @@ const schemeManager = {
                 }
                 if (nextIndex !== null) {
                     e.preventDefault();
-                    cards[nextIndex].focus();
                     this.selectScheme(cards[nextIndex].dataset.scheme);
+                    cards[nextIndex].focus();
                 }
             });
         });
+        this.updateSchemeCards();
     }
 };
 
 // 时间格式：24 小时制（默认）或 12 小时制
-let hourFormat = '24';
-
-function loadHourFormat() {
-    try {
-        if (localStorage.getItem('hourFormat') === '12') {
-            hourFormat = '12';
-        }
-    } catch (e) {
-        console.error('Error loading hour format:', e);
-    }
-}
-
-// 设置时间格式并持久化（24 为默认，不落盘）
 function setHourFormat(format) {
-    hourFormat = format === '12' ? '12' : '24';
-    try {
-        if (hourFormat === '12') {
-            localStorage.setItem('hourFormat', '12');
-        } else {
-            localStorage.removeItem('hourFormat');
-        }
-    } catch (e) {
-        console.error('Error saving hour format:', e);
-    }
+    prefs.update({ hourFormat: format === '12' ? '12' : '24' });
     updateDateTime();
     updateHourFormatControl();
 }
 
-// 同步外观面板的时间格式选中态
+// 同步通用面板的时间格式选中态
 function updateHourFormatControl() {
-    const radio = document.querySelector(`input[name="hour-format"][value="${hourFormat}"]`);
+    const radio = document.querySelector(`input[name="hour-format"][value="${prefs.data.hourFormat}"]`);
     if (radio) {
         radio.checked = true;
     }
@@ -243,47 +393,21 @@ const SHORTCUT_ACTIONS = {
     closeModal: { label: '关闭弹窗', defaultKey: 'Escape' }
 };
 
+// 不可单独绑定的导航/编辑键：绑定后会破坏键盘导航或文字输入
+const RESERVED_KEYS = ['Tab', 'Enter', 'Space', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'];
+
 const shortcutManager = {
-    shortcuts: {},
-    recordingAction: null,
-    recordingHandler: null,
-    STORAGE_KEY: 'customShortcuts',
+    recording: null, // { action, row, keyEl, handler }
 
     init() {
-        this.loadShortcuts();
         this.renderShortcutList();
         document.addEventListener('keydown', (e) => this.handleKeydown(e));
     },
 
-    // 加载自定义快捷键（默认值不落盘）
-    loadShortcuts() {
-        this.shortcuts = {};
-        try {
-            const saved = localStorage.getItem(this.STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                Object.keys(SHORTCUT_ACTIONS).forEach(action => {
-                    if (typeof parsed[action] === 'string' && parsed[action]) {
-                        this.shortcuts[action] = parsed[action];
-                    }
-                });
-            }
-        } catch (e) {
-            console.error('Error loading shortcuts:', e);
-        }
-    },
-
-    saveShortcuts() {
-        try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.shortcuts));
-        } catch (e) {
-            console.error('Error saving shortcuts:', e);
-        }
-    },
-
     // 当前动作生效的键（自定义优先，回退默认）
     getKey(action) {
-        return this.shortcuts[action] || SHORTCUT_ACTIONS[action].defaultKey;
+        return prefs.data.shortcuts[action] || SHORTCUT_ACTIONS[action].defaultKey;
     },
 
     // 组合键的显示形式（存储/匹配用完整键名，显示层缩写，如 Escape → ESC）
@@ -305,9 +429,16 @@ const shortcutManager = {
         return parts.join('+');
     },
 
+    // 导航/编辑键在没有 Ctrl/Alt/Meta 时不能作为快捷键（Shift+Tab 同样保留）
+    isReserved(event) {
+        const key = event.key === ' ' ? 'Space' : event.key;
+        const hasCommandModifier = event.ctrlKey || event.altKey || event.metaKey;
+        return RESERVED_KEYS.includes(key) && !hasCommandModifier;
+    },
+
     // 全局按键处理：匹配动作并执行；录制态与输入态不处理
     handleKeydown(event) {
-        if (this.recordingAction) return;
+        if (this.recording) return;
         // 对话框惯例：Esc 始终关闭最上层弹窗，即使焦点在输入框内
         if (event.key === 'Escape' && closeTopmostModal()) {
             event.preventDefault();
@@ -353,6 +484,7 @@ const shortcutManager = {
     renderShortcutList() {
         const list = document.getElementById('shortcut-list');
         if (!list) return;
+        this.cancelRecording();
         list.innerHTML = '';
 
         Object.keys(SHORTCUT_ACTIONS).forEach(action => {
@@ -377,116 +509,103 @@ const shortcutManager = {
         });
     },
 
+    // 录制失败（冲突或保留键）：短暂显示原因后恢复
+    flashRowMessage(row, keyEl, action, message) {
+        row.classList.add('conflict');
+        keyEl.textContent = message;
+        setTimeout(() => {
+            row.classList.remove('conflict');
+            keyEl.textContent = this.displayKey(this.getKey(action));
+        }, 2000);
+    },
+
     // 开始录制新组合键
     startRecording(action, row) {
-        if (this.recordingAction) return;
-        this.recordingAction = action;
-        row.classList.add('recording');
+        if (this.recording) return;
         const keyEl = row.querySelector('.shortcut-key');
+        row.classList.add('recording');
         keyEl.textContent = '按下新组合键';
 
-        this.recordingHandler = (event) => {
+        const handler = (event) => {
             event.preventDefault();
             event.stopPropagation();
 
             // Escape 取消录制（不绑定）
             if (event.key === 'Escape') {
-                this.cancelRecording(row, keyEl);
+                this.cancelRecording();
                 return;
             }
 
             // 纯修饰键按下不结束录制（等待主键）
-            if (event.key === 'Control' || event.key === 'Shift' ||
-                event.key === 'Alt' || event.key === 'Meta') {
+            if (['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) {
+                return;
+            }
+
+            this.stopRecording();
+
+            if (this.isReserved(event)) {
+                this.flashRowMessage(row, keyEl, action, '导航键不能单独使用');
                 return;
             }
 
             const key = this.formatKey(event);
-
             // 冲突检测：组合键已被其他动作占用
             const conflict = Object.keys(SHORTCUT_ACTIONS).find(a =>
                 a !== action && this.getKey(a) === key
             );
             if (conflict) {
-                row.classList.remove('recording');
-                row.classList.add('conflict');
-                keyEl.textContent = `已被“${SHORTCUT_ACTIONS[conflict].label}”使用`;
-                setTimeout(() => {
-                    row.classList.remove('conflict');
-                    keyEl.textContent = this.displayKey(this.getKey(action));
-                }, 2000);
-                this.finishRecording();
+                this.flashRowMessage(row, keyEl, action, `已被“${SHORTCUT_ACTIONS[conflict].label}”使用`);
                 return;
             }
 
-            this.shortcuts[action] = key;
-            this.saveShortcuts();
-            row.classList.remove('recording');
+            prefs.update({ shortcuts: { ...prefs.data.shortcuts, [action]: key } });
             keyEl.textContent = this.displayKey(key);
-            this.finishRecording();
         };
-        document.addEventListener('keydown', this.recordingHandler);
+
+        this.recording = { action, row, keyEl, handler };
+        // 捕获阶段监听，先于焦点陷阱等其他按键处理
+        document.addEventListener('keydown', handler, true);
     },
 
-    cancelRecording(row, keyEl) {
-        row.classList.remove('recording');
-        keyEl.textContent = this.displayKey(this.getKey(this.recordingAction));
-        this.finishRecording();
+    // 结束录制（不改显示）
+    stopRecording() {
+        if (!this.recording) return;
+        document.removeEventListener('keydown', this.recording.handler, true);
+        this.recording.row.classList.remove('recording');
+        this.recording = null;
     },
 
-    finishRecording() {
-        document.removeEventListener('keydown', this.recordingHandler);
-        this.recordingHandler = null;
-        this.recordingAction = null;
+    // 取消录制并恢复原显示；关闭设置或切换分区时也会调用
+    cancelRecording() {
+        if (!this.recording) return;
+        const { action, keyEl } = this.recording;
+        this.stopRecording();
+        keyEl.textContent = this.displayKey(this.getKey(action));
     },
 
     // 恢复默认：清空自定义
     resetShortcuts() {
-        this.shortcuts = {};
-        try {
-            localStorage.removeItem(this.STORAGE_KEY);
-        } catch (e) {
-            console.error('Error resetting shortcuts:', e);
-        }
+        prefs.update({ shortcuts: {} });
         this.renderShortcutList();
         toast.show('已恢复默认快捷键');
     }
 };
 
-// 打开方式：新标签页（默认）或当前标签页
-let openInNewTab = true;
-
-function loadOpenBehavior() {
-    try {
-        openInNewTab = localStorage.getItem('openInNewTab') !== 'false';
-    } catch (e) {
-        console.error('Error loading open behavior:', e);
-    }
-}
-
+// 打开方式：默认当前标签页；开启后在新标签页打开
 function setOpenInNewTab(value) {
-    openInNewTab = value === 'new';
-    try {
-        if (openInNewTab) {
-            localStorage.removeItem('openInNewTab');
-        } else {
-            localStorage.setItem('openInNewTab', 'false');
-        }
-    } catch (e) {
-        console.error('Error saving open behavior:', e);
-    }
+    prefs.update({ openInNewTab: value === true });
 }
 
 function updateOpenBehaviorControl() {
     const toggle = document.getElementById('open-in-new-tab');
     if (toggle) {
-        toggle.checked = openInNewTab;
+        toggle.checked = prefs.data.openInNewTab;
     }
 }
 
 // 统一打开目的地：搜索提交与快捷链接点击共用
 function openDestination(url) {
-    if (openInNewTab) {
+    if (prefs.data.openInNewTab) {
         window.open(url, '_blank');
     } else {
         window.location.href = url;
@@ -500,6 +619,7 @@ function updateDateTime() {
     // 更新时间：24 小时制补零，12 小时制带 AM/PM
     let hours = now.getHours();
     let period = '';
+    const hourFormat = prefs.data.hourFormat;
     if (hourFormat === '12') {
         period = hours < 12 ? ' AM' : ' PM';
         hours = hours % 12 || 12;
@@ -524,8 +644,8 @@ function updateDateTime() {
     }
 }
 
-// 每秒更新一次时间
-loadHourFormat();
+// 首帧：先用本地缓存的偏好渲染，再每秒更新时间
+prefs.initFromCache();
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
@@ -629,36 +749,56 @@ const engineManager = {
 
             // 有迁移时写回新结构并清理旧键
             if (migrated) {
-                this.save();
-                this.saveCurrentEngine();
-                storage.remove('searchEngines');
+                storage.set({
+                    customEngines: this.customEngines,
+                    enabledEngines: this.enabledIds,
+                    searchEngine: this.currentEngineId
+                }, (error) => {
+                    if (!error) storage.remove('searchEngines');
+                });
             }
 
             callback && callback();
         });
     },
 
-    // 保存引擎配置（customEngines + enabledEngines 两键）
+    // 保存引擎配置（自定义引擎、启用列表、当前引擎）；失败时提示并按存储恢复
     save(callback) {
         storage.set({
             customEngines: this.customEngines,
-            enabledEngines: this.enabledIds
-        }, callback);
+            enabledEngines: this.enabledIds,
+            searchEngine: this.currentEngineId
+        }, (error) => {
+            if (error) {
+                toast.show(describeSaveError(error));
+                this.load(() => {
+                    updateEngineIcon();
+                    renderEngineSettings();
+                });
+                return;
+            }
+            if (callback) callback();
+        });
     },
 
-    // 保存当前引擎（searchEngine 键存引擎 id）
-    saveCurrentEngine(callback) {
-        storage.set({ searchEngine: this.currentEngineId }, callback);
+    // 只保存当前引擎（searchEngine 键存引擎 id）
+    saveCurrentEngine() {
+        storage.set({ searchEngine: this.currentEngineId }, (error) => {
+            if (error) toast.show(describeSaveError(error));
+        });
+    },
+
+    // 用于判断外部修改是否改变了引擎配置
+    snapshot() {
+        return JSON.stringify([this.customEngines, this.enabledIds, this.currentEngineId]);
     },
 
     // 选择引擎
     setEngine(id) {
         if (!this.getEngines().some(e => e.id === id)) return;
         this.currentEngineId = id;
-        this.saveCurrentEngine(() => {
-            updateEngineIcon(true);
-            engineMenu.close();
-        });
+        updateEngineIcon(true);
+        this.saveCurrentEngine();
     },
 
     // 循环切换到下一个启用引擎（≤2 个时使用）
@@ -668,9 +808,8 @@ const engineManager = {
         const currentIndex = engines.findIndex(e => e.id === this.currentEngineId);
         const next = engines[(currentIndex + 1) % engines.length];
         this.currentEngineId = next.id;
-        this.saveCurrentEngine(() => {
-            updateEngineIcon(true);
-        });
+        updateEngineIcon(true);
+        this.saveCurrentEngine();
     },
 
     // 生成自定义引擎 id
@@ -691,44 +830,65 @@ const engineMenu = {
         document.body.appendChild(this.element);
 
         document.addEventListener('click', (e) => {
-            if (this.element.classList.contains('open') &&
+            if (this.isOpen() &&
                 !this.element.contains(e.target) &&
                 !document.getElementById('engine-selector').contains(e.target)) {
                 this.close();
             }
         });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.element.classList.contains('open')) {
+        // 菜单内按键：方向键移动、Home/End 跳转、Esc 关闭并回到按钮、Tab 关闭
+        this.element.addEventListener('keydown', (e) => {
+            const items = Array.from(this.element.querySelectorAll('.engine-menu-item'));
+            const index = items.indexOf(document.activeElement);
+            let next = null;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                next = (index + 1) % items.length;
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                next = (index - 1 + items.length) % items.length;
+            } else if (e.key === 'Home') {
+                next = 0;
+            } else if (e.key === 'End') {
+                next = items.length - 1;
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.close(document.getElementById('engine-selector'));
+                return;
+            } else if (e.key === 'Tab') {
                 this.close();
+                return;
+            }
+            if (next !== null) {
+                e.preventDefault();
+                items[next].focus();
             }
         });
+        window.addEventListener('resize', () => this.close());
+    },
+
+    isOpen() {
+        return !!this.element && this.element.classList.contains('open');
     },
 
     render() {
         const engines = engineManager.getEngines();
         this.element.innerHTML = '';
-        engines.forEach((engine, index) => {
+        engines.forEach(engine => {
+            const checked = engine.id === engineManager.currentEngineId;
             const item = document.createElement('button');
             item.type = 'button';
-            item.className = 'engine-menu-item' +
-                (engine.id === engineManager.currentEngineId ? ' active' : '');
-            item.setAttribute('role', 'menuitem');
-            item.setAttribute('aria-label', engine.label);
-            item.setAttribute('aria-current', String(engine.id === engineManager.currentEngineId));
+            item.className = 'engine-menu-item' + (checked ? ' active' : '');
+            item.setAttribute('role', 'menuitemradio');
+            item.setAttribute('aria-checked', String(checked));
+            item.tabIndex = -1;
             item.appendChild(this.buildIcon(engine));
             const name = document.createElement('span');
             name.textContent = engine.label;
             item.appendChild(name);
             item.addEventListener('click', () => {
                 engineManager.setEngine(engine.id);
-            });
-            item.addEventListener('keydown', (e) => {
-                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    const offset = e.key === 'ArrowRight' ? 1 : -1;
-                    const nextIndex = (index + offset + engines.length) % engines.length;
-                    this.element.querySelectorAll('.engine-menu-item')[nextIndex].focus();
-                }
+                // 选完引擎通常紧接着输入搜索词
+                this.close(document.getElementById('search-input'));
             });
             this.element.appendChild(item);
         });
@@ -751,7 +911,7 @@ const engineMenu = {
         return letter;
     },
 
-    // 在引擎按钮下方打开菜单
+    // 在引擎按钮下方打开菜单，焦点放在当前引擎上
     open() {
         this.render();
         const selector = document.getElementById('engine-selector');
@@ -759,16 +919,22 @@ const engineMenu = {
         this.element.classList.add('open');
         this.element.style.left = `${rect.left}px`;
         this.element.style.top = `${rect.bottom + 6}px`;
-        const firstItem = this.element.querySelector('.engine-menu-item');
-        if (firstItem) firstItem.focus();
+        selector.setAttribute('aria-expanded', 'true');
+        const current = this.element.querySelector('[aria-checked="true"]') ||
+            this.element.querySelector('.engine-menu-item');
+        if (current) current.focus();
     },
 
-    close() {
+    // 关闭菜单；returnFocus 指定关闭后聚焦的元素
+    close(returnFocus) {
+        if (!this.isOpen()) return;
         this.element.classList.remove('open');
+        document.getElementById('engine-selector').setAttribute('aria-expanded', 'false');
+        if (returnFocus) returnFocus.focus();
     },
 
     toggle() {
-        if (this.element.classList.contains('open')) {
+        if (this.isOpen()) {
             this.close();
         } else {
             this.open();
@@ -797,9 +963,17 @@ function updateEngineIcon(animate) {
 
     const engineSelector = document.getElementById('engine-selector');
     if (engineSelector) {
-        const label = `切换搜索引擎，当前为 ${engine.label}`;
+        const usesMenu = engineManager.getEngines().length > 2;
+        const label = `${usesMenu ? '选择' : '切换'}搜索引擎，当前为 ${engine.label}`;
         engineSelector.setAttribute('aria-label', label);
         engineSelector.title = label;
+        if (usesMenu) {
+            engineSelector.setAttribute('aria-haspopup', 'menu');
+            engineSelector.setAttribute('aria-expanded', String(engineMenu.isOpen()));
+        } else {
+            engineSelector.removeAttribute('aria-haspopup');
+            engineSelector.removeAttribute('aria-expanded');
+        }
     }
 
     if (animate) {
@@ -814,6 +988,7 @@ function updateEngineIcon(animate) {
 function handleEngineClick() {
     const engines = engineManager.getEngines();
     if (engines.length <= 2) {
+        engineMenu.close();
         engineManager.cycleEngine();
     } else {
         engineMenu.toggle();
@@ -826,21 +1001,12 @@ document.getElementById('search-form').addEventListener('submit', function (e) {
     performSearch();
 });
 
-// 根据单选切换，自定义 URL 输入框显示状态 / 时间格式
+// 设置页控件：时间格式 / 打开方式 / 显示模式
 document.addEventListener('change', function (e) {
-    if (e.target && e.target.name === 'icon-mode') {
-        const customContainer = document.getElementById('custom-url-container');
-        if (customContainer) {
-            if (e.target.value === 'custom') {
-                customContainer.classList.add('show');
-            } else {
-                customContainer.classList.remove('show');
-            }
-        }
-    } else if (e.target && e.target.name === 'hour-format') {
+    if (e.target && e.target.name === 'hour-format') {
         setHourFormat(e.target.value);
     } else if (e.target && e.target.id === 'open-in-new-tab') {
-        setOpenInNewTab(e.target.checked ? 'new' : 'current');
+        setOpenInNewTab(e.target.checked);
     } else if (e.target && e.target.name === 'theme-mode') {
         themeManager.setTheme(e.target.value);
     }
@@ -933,211 +1099,199 @@ function getSiteColor(linkUrl) {
     }
 }
 
-// 存储API兼容层
-const storage = {
-    get: function (key, callback) {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-            // 使用chrome存储API
-            chrome.storage.sync.get(key, callback);
-        } else {
-            // 使用localStorage作为备选
-            try {
-                const data = {};
-                if (typeof key === 'string') {
-                    data[key] = JSON.parse(localStorage.getItem(key));
-                } else if (Array.isArray(key)) {
-                    key.forEach(k => {
-                        data[k] = JSON.parse(localStorage.getItem(k));
-                    });
-                } else {
-                    Object.keys(key).forEach(k => {
-                        const value = localStorage.getItem(k);
-                        data[k] = value !== null ? JSON.parse(value) : key[k];
-                    });
-                }
-                callback(data);
-            } catch (e) {
-                console.error('Error getting data from localStorage', e);
-                callback({});
-            }
-        }
-    },
-
-    set: function (items, callback) {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-            // 使用chrome存储API
-            chrome.storage.sync.set(items, callback);
-        } else {
-            // 使用localStorage作为备选
-            try {
-                Object.keys(items).forEach(key => {
-                    localStorage.setItem(key, JSON.stringify(items[key]));
-                });
-                if (callback) callback();
-            } catch (e) {
-                console.error('Error saving data to localStorage', e);
-                if (callback) callback();
-            }
-        }
-    },
-
-    // 删除键（迁移时清理旧数据）
-    remove: function (key, callback) {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-            // chrome.storage 用 undefined 值删除键
-            chrome.storage.sync.set({ [key]: undefined }, callback);
-        } else {
-            try {
-                localStorage.removeItem(key);
-                if (callback) callback();
-            } catch (e) {
-                console.error('Error removing data from localStorage', e);
-                if (callback) callback();
-            }
-        }
+// 规范化用户输入的网址：补全协议，只接受 http / https；无效时返回 null。
+// allowPlaceholder：搜索引擎模板中的 {q} 先替换成示例词再校验
+function normalizeHttpUrl(input, allowPlaceholder) {
+    let value = String(input || '').trim();
+    if (!value || /\s/.test(value.replace(/\{q\}/g, ''))) return null;
+    // "localhost:3000" 这类"主机:端口"不算协议；带 :// 或常见非网页协议才算
+    const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ||
+        /^(javascript|data|vbscript|file|blob|about|chrome|mailto|tel):/i.test(value);
+    if (!hasScheme) {
+        value = 'https://' + value;
     }
-};
-
-// 依据 URL 生成 favicon 地址，优先站点自身的 /favicon.ico
-function deriveFaviconUrl(linkUrl) {
     try {
-        const url = new URL(linkUrl);
-        const domain = url.hostname;
-        return `${url.protocol}//${domain}/favicon.ico`;
+        const parsed = new URL(allowPlaceholder ? value.replace(/\{q\}/g, 'test') : value);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+        if (!isValidHostname(parsed.hostname, hasScheme)) return null;
+        return value;
     } catch (e) {
-        return '';
+        return null;
     }
 }
 
-// 补齐链接缺失的图标字段
+// 主机名校验（浏览器的 URL 解析很宽松，会把空格等编码进主机名）。
+// 未写协议时要求像域名（含点）或是 localhost / IP；显式写了 http(s):// 时允许内网单名主机
+function isValidHostname(host, explicitScheme) {
+    if (!host) return false;
+    if (host === 'localhost' || /^\[[0-9a-f:.]+\]$/i.test(host) || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+        return true;
+    }
+    const labels = host.split('.');
+    const labelsOk = labels.every(label => /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
+    return labelsOk && (explicitScheme || labels.length >= 2);
+}
+
+// 链接只保存名称与网址（旧版本的图标字段在加载时清理，节省同步空间）
 function normalizeLink(link) {
-    const next = { ...link };
-    if (!next.iconMode) {
-        next.iconMode = 'favicon';
-    }
-    if (!next.icon && next.iconMode === 'favicon') {
-        next.icon = deriveFaviconUrl(next.url);
-    }
-    return next;
+    return { name: String(link.name).trim(), url: String(link.url).trim() };
 }
 
-// 从存储中加载链接或使用默认链接，并补齐缺失的图标字段
+// 校验并规范化链接数组；不是合法数组时返回 null
+function sanitizeLinks(value) {
+    if (!Array.isArray(value)) return null;
+    return value
+        .filter(link => link && typeof link.name === 'string' && typeof link.url === 'string' &&
+            link.name.trim() && link.url.trim())
+        .map(normalizeLink);
+}
+
+// 链接身份：名称 + 网址（不依赖位置，避免列表变化后操作到错误的条目）
+function linkKey(link) {
+    return `${link.url}\n${link.name}`;
+}
+
+// 在最新列表中定位条目：优先原位置，位置不符时按身份查找
+function findLinkIndex(links, index, key) {
+    if (links[index] && linkKey(links[index]) === key) return index;
+    return links.findIndex(link => linkKey(link) === key);
+}
+
+// 当前渲染中的链接（用于判断外部修改是否需要重渲染）
+let currentLinks = [];
+
+// 从存储中加载链接或使用默认链接；清理旧版图标字段
 function loadLinks() {
     storage.get('quickLinks', function (data) {
-        const original = data.quickLinks || defaultLinks;
-        let mutated = false;
-        const links = original.map(link => {
-            const next = normalizeLink(link);
-            if (next.iconMode !== link.iconMode || next.icon !== link.icon) {
-                mutated = true;
-            }
-            return next;
-        });
-
-        if (mutated) {
+        const stored = data.quickLinks;
+        const links = sanitizeLinks(stored) || defaultLinks.slice();
+        renderLinks(links);
+        if (Array.isArray(stored) && JSON.stringify(stored) !== JSON.stringify(links)) {
             saveLinks(links);
+        }
+    });
+}
+
+// 保存链接；失败时提示原因，并按存储中的实际数据重新渲染
+function saveLinks(links, callback) {
+    storage.set({ quickLinks: links }, function (error) {
+        if (error) {
+            toast.show(describeSaveError(error));
+            storage.get('quickLinks', function (data) {
+                renderLinks(sanitizeLinks(data.quickLinks) || defaultLinks.slice());
+            });
         } else {
             renderLinks(links);
         }
+        if (callback) callback(error);
     });
 }
 
-// 保存链接到存储
-function saveLinks(links) {
-    storage.set({ 'quickLinks': links }, function () {
-        renderLinks(links);
-    });
+// 串行修改链接：每次都基于存储中的最新列表，前一次写完再开始下一次，
+// 避免连续快速操作时互相覆盖。mutator 返回 false 表示放弃本次修改。
+let linksQueue = Promise.resolve();
+
+function mutateLinks(mutator, onSaved) {
+    linksQueue = linksQueue.then(() => new Promise(resolve => {
+        storage.get('quickLinks', function (data) {
+            const links = sanitizeLinks(data.quickLinks) || defaultLinks.slice();
+            const result = mutator(links);
+            if (result === false) {
+                renderLinks(links);
+                resolve();
+                return;
+            }
+            saveLinks(links, function (error) {
+                if (!error && onSaved) onSaved(result);
+                resolve();
+            });
+        });
+    }));
 }
 
-// 渲染链接到页面
+// 渲染链接到页面：每个条目是一个包装元素，内含链接与独立的删除按钮
+// （不把按钮嵌在链接里，读屏与键盘各自独立）
 function renderLinks(links) {
+    currentLinks = links.slice();
     const quickLinksContainer = document.getElementById('quick-links');
-    // 保存添加按钮元素
     const addButton = document.getElementById('add-link-button');
 
-    // 记录旧条目 key（url|name），新增条目播放入场动画；首次渲染跳过
+    // 删除后焦点落到同位置的条目（或"添加"按钮）上，不丢失
+    const focusedItem = document.activeElement && document.activeElement.closest('.quick-link-item');
+    const focusIndex = focusedItem ? parseInt(focusedItem.dataset.index, 10) : null;
+
+    // 记录旧条目 key，新增条目播放入场动画；首次渲染跳过
     const oldKeys = new Set(
-        Array.from(quickLinksContainer.querySelectorAll('a.quick-link[data-index]'))
+        Array.from(quickLinksContainer.querySelectorAll('.quick-link-item'))
             .map(el => el.dataset.key)
-            .filter(Boolean)
     );
     const hadItems = oldKeys.size > 0;
 
-    // 清空容器，但不包括添加按钮
     quickLinksContainer.innerHTML = '';
 
-    // 首先添加所有链接
     links.forEach((link, index) => {
+        const key = linkKey(link);
+        const item = document.createElement('div');
+        item.className = 'quick-link-item';
+        item.draggable = true;
+        item.dataset.index = index;
+        item.dataset.key = key;
+        if (hadItems && !oldKeys.has(key)) {
+            item.classList.add('entry-in');
+        }
+
         const linkElement = document.createElement('a');
         linkElement.className = 'quick-link';
         linkElement.href = link.url;
-        linkElement.target = '_blank';
         linkElement.title = link.url;
-        linkElement.draggable = true;
-        linkElement.dataset.index = index;
-        linkElement.dataset.key = `${link.url}|${link.name}`;
-        if (hadItems && !oldKeys.has(linkElement.dataset.key)) {
-            linkElement.classList.add('entry-in');
-        }
+        // 拖拽由外层条目负责，链接本身不作为拖拽源
+        linkElement.draggable = false;
 
         const siteDot = document.createElement('span');
         siteDot.className = 'quick-link-dot';
         siteDot.setAttribute('aria-hidden', 'true');
         siteDot.style.setProperty('--c-site-color', getSiteColor(link.url));
 
-        // 创建名称
-        const nameElement = document.createElement('div');
+        const nameElement = document.createElement('span');
         nameElement.className = 'quick-link-name';
         nameElement.textContent = link.name;
 
-        // 创建删除按钮
-        const deleteElement = document.createElement('span');
-        deleteElement.className = 'delete-link';
-        deleteElement.setAttribute('role', 'button');
-        deleteElement.setAttribute('tabindex', '0');
-        deleteElement.setAttribute('aria-label', `删除 ${link.name}`);
-        deleteElement.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 7H20M9 7V4H15V7M6.5 7L7.5 20H16.5L17.5 7M10 11V16M14 11V16"></path>
-            </svg>
-        `;
-
-        const handleDelete = function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            deleteLink(index);
-        };
-        deleteElement.addEventListener('click', handleDelete);
-        deleteElement.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                handleDelete(e);
-            }
-        });
-
         linkElement.appendChild(siteDot);
         linkElement.appendChild(nameElement);
-        linkElement.appendChild(deleteElement);
-        quickLinksContainer.appendChild(linkElement);
 
-        // 尊重打开方式设置；修饰键点击保留浏览器原生行为
+        // 尊重打开方式设置；修饰键点击保留浏览器原生行为（新标签页、新窗口）
         linkElement.addEventListener('click', function (e) {
-            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
                 return;
             }
             e.preventDefault();
             openDestination(link.url);
         });
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'delete-link';
+        deleteButton.setAttribute('aria-label', `删除 ${link.name}`);
+        deleteButton.innerHTML = DELETE_ICON_SVG;
+        deleteButton.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteLink(index, key);
+        });
+
+        item.appendChild(linkElement);
+        item.appendChild(deleteButton);
+        quickLinksContainer.appendChild(item);
     });
 
-    // 重新添加"添加"按钮
     quickLinksContainer.appendChild(addButton);
-
-    // 建立右键编辑
-    attachContextMenu(links);
-
-    // 设置拖拽功能
     setupDragAndDrop();
+
+    if (focusIndex !== null && !document.activeElement.closest('.quick-link-item')) {
+        const items = quickLinksContainer.querySelectorAll('.quick-link-item .quick-link');
+        const target = items[Math.min(focusIndex, items.length - 1)] || addButton;
+        target.focus();
+    }
 
     // 同步设置页的链接列表
     renderSettingsLinks(links);
@@ -1163,7 +1317,7 @@ function renderSettingsLinks(links) {
     // 无参调用时从存储加载
     if (!links) {
         storage.get('quickLinks', function (data) {
-            renderSettingsLinks(data.quickLinks || defaultLinks);
+            renderSettingsLinks(sanitizeLinks(data.quickLinks) || defaultLinks.slice());
         });
         return;
     }
@@ -1191,11 +1345,12 @@ function renderSettingsLinks(links) {
     }
 
     links.forEach((link, index) => {
+        const key = linkKey(link);
         const row = document.createElement('div');
         row.className = 'settings-row settings-link-row';
         row.draggable = true;
         row.dataset.index = index;
-        row.dataset.key = `${link.url}|${link.name}`;
+        row.dataset.key = key;
         if (hadItems && !oldKeys.has(row.dataset.key)) {
             row.classList.add('entry-in');
         }
@@ -1236,7 +1391,7 @@ function renderSettingsLinks(links) {
         editButton.innerHTML = EDIT_ICON_SVG;
         editButton.addEventListener('click', function (e) {
             e.stopPropagation();
-            openLinkEditor('edit', index);
+            openLinkEditor('edit', index, key);
         });
 
         const deleteButton = document.createElement('button');
@@ -1246,7 +1401,7 @@ function renderSettingsLinks(links) {
         deleteButton.innerHTML = DELETE_ICON_SVG;
         deleteButton.addEventListener('click', function (e) {
             e.stopPropagation();
-            deleteLink(index);
+            deleteLink(index, key);
         });
 
         actions.appendChild(editButton);
@@ -1259,7 +1414,7 @@ function renderSettingsLinks(links) {
 
         // 点击行主体打开编辑弹窗
         row.addEventListener('click', function () {
-            openLinkEditor('edit', index);
+            openLinkEditor('edit', index, key);
         });
 
         list.appendChild(row);
@@ -1381,7 +1536,7 @@ function createInsertionDrag(container, onDrop, direction) {
         if (draggedElement === null) return;
         e.preventDefault();
         const insertIndex = getInsertIndex(e.clientX, e.clientY);
-        onDrop(draggedIndex, insertIndex);
+        onDrop(draggedIndex, insertIndex, draggedElement.dataset.key);
         indicator.style.display = 'none';
     });
 
@@ -1426,43 +1581,39 @@ function setupSettingsListDrag() {
 }
 
 // 插入链接：把 fromIndex 的链接移动到 toIndex（后续条目依次后移）
-function insertLink(fromIndex, toIndex) {
-    storage.get('quickLinks', function (data) {
-        const links = (data.quickLinks || defaultLinks).slice();
-        if (fromIndex < 0 || fromIndex >= links.length) return;
-
-        const moved = links.splice(fromIndex, 1)[0];
-        let target = toIndex;
-        if (fromIndex < toIndex) {
-            // 移除后目标位置前移一位
-            target -= 1;
-        }
-        target = Math.max(0, Math.min(target, links.length));
+function insertLink(fromIndex, toIndex, key) {
+    mutateLinks(function (links) {
+        const from = findLinkIndex(links, fromIndex, key);
+        if (from === -1) return false;
+        const moved = links.splice(from, 1)[0];
+        // 移除后目标位置前移一位
+        const target = Math.max(0, Math.min(from < toIndex ? toIndex - 1 : toIndex, links.length));
         links.splice(target, 0, moved);
-        saveLinks(links);
     });
 }
 
-// 删除链接：启动器与设置列表条目先播退出动画，动画结束后删除并保存
-function deleteLink(index) {
-    const launcherItem = document.querySelector(`#quick-links a.quick-link[data-index="${index}"]`);
-    const settingsRow = document.querySelector(`.settings-link-row[data-index="${index}"]`);
-    const targets = [launcherItem, settingsRow].filter(Boolean);
+// 删除链接：条目先播退出动画，再在最新列表中按身份删除；提示中可撤销
+function deleteLink(index, key) {
+    const selector = `[data-key="${CSS.escape(key)}"]`;
+    const targets = Array.from(document.querySelectorAll(
+        `#quick-links .quick-link-item${selector}, #settings-link-list .settings-link-row${selector}`
+    ));
 
     let executed = false;
     const doDelete = function () {
         if (executed) return;
         executed = true;
-        storage.get('quickLinks', function (data) {
-            const previous = (data.quickLinks || defaultLinks).slice();
-            const links = previous.slice();
-            const removed = links.splice(index, 1)[0];
-            saveLinks(links);
-            if (removed) {
-                toast.show(`已删除“${removed.name}”`, {
-                    onAction: () => saveLinks(previous)
-                });
-            }
+        mutateLinks(function (links) {
+            const at = findLinkIndex(links, index, key);
+            if (at === -1) return false;
+            return { link: links.splice(at, 1)[0], at };
+        }, function (removed) {
+            toast.show(`已删除“${removed.link.name}”`, {
+                // 撤销只放回这一条，不覆盖之后的其他修改
+                onAction: () => mutateLinks(function (links) {
+                    links.splice(Math.min(removed.at, links.length), 0, removed.link);
+                })
+            });
         });
     };
 
@@ -1487,114 +1638,97 @@ function deleteLink(index) {
     setTimeout(doDelete, 350);
 }
 
-// 统一的保存处理函数，通过 modal.dataset.mode 区分新增/编辑模式
-function handleSaveLink() {
-    const linkName = document.getElementById('link-name').value.trim();
-    let linkUrl = document.getElementById('link-url').value.trim();
-    const iconMode = document.querySelector('input[name="icon-mode"]:checked')?.value || 'favicon';
-    const customIconUrl = document.getElementById('icon-custom-url')?.value.trim();
+// 表单字段错误：显示在字段下方，并标记 aria-invalid；message 为空时清除
+function setFieldError(inputId, message) {
+    const input = document.getElementById(inputId);
+    const errorEl = document.getElementById(`${inputId}-error`);
+    if (!input || !errorEl) return;
+    errorEl.textContent = message || '';
+    errorEl.hidden = !message;
+    if (message) {
+        input.setAttribute('aria-invalid', 'true');
+    } else {
+        input.removeAttribute('aria-invalid');
+    }
+}
 
+function clearFieldErrors(form) {
+    form.querySelectorAll('.field-error').forEach(el => {
+        setFieldError(el.id.replace(/-error$/, ''), '');
+    });
+}
+
+// 保存链接（新增或编辑）：名称必填，网址须为有效的 http(s) 地址
+function handleSaveLink() {
+    const nameInput = document.getElementById('link-name');
+    const urlInput = document.getElementById('link-url');
+    const linkName = nameInput.value.trim();
+    const linkUrl = normalizeHttpUrl(urlInput.value);
+
+    clearFieldErrors(modal);
     if (!linkName) {
-        document.getElementById('link-name').focus();
+        setFieldError('link-name', '请填写名称');
+        nameInput.focus();
         return;
     }
     if (!linkUrl) {
-        document.getElementById('link-url').focus();
+        setFieldError('link-url', urlInput.value.trim()
+            ? '请输入有效的网址，例如 https://example.com'
+            : '请填写网址');
+        urlInput.focus();
         return;
     }
 
-    if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
-        linkUrl = 'https://' + linkUrl;
-    }
+    const isEdit = modal.dataset.mode === 'edit';
+    const editingIndex = parseInt(modal.dataset.editingIndex, 10);
+    const editingKey = modal.dataset.editingKey;
+    const next = { name: linkName, url: linkUrl };
 
-    let icon = '';
-    if (iconMode === 'favicon') icon = deriveFaviconUrl(linkUrl);
-    if (iconMode === 'custom' && customIconUrl) icon = customIconUrl;
-
-    storage.get('quickLinks', function (data) {
-        const links = (data.quickLinks || defaultLinks).slice();
-
-        if (modal.dataset.mode === 'edit') {
-            // 编辑模式：更新指定索引
-            const idx = parseInt(modal.dataset.editingIndex);
-            links[idx] = { name: linkName, url: linkUrl, iconMode, icon };
+    mutateLinks(function (links) {
+        if (isEdit) {
+            const at = findLinkIndex(links, editingIndex, editingKey);
+            if (at === -1) {
+                toast.show('这个链接已在其他地方被修改或删除，没有保存');
+                return false;
+            }
+            links[at] = next;
         } else {
-            // 新增模式：push 到数组
-            links.push({ name: linkName, url: linkUrl, iconMode, icon });
+            links.push(next);
         }
-
-        saveLinks(links);
+    }, function () {
         closeModal();
     });
 }
 
-// 右键编辑：打开编辑弹窗（edit 模式）
-function attachContextMenu(links) {
-    const quickLinksContainer = document.getElementById('quick-links');
-    const linkNodes = quickLinksContainer.querySelectorAll('a.quick-link');
-    linkNodes.forEach((node, idx) => {
-        node.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-            openLinkEditor('edit', idx);
-        });
-    });
-}
+// 打开链接编辑弹窗：mode = 'add' 新增 / 'edit' 编辑（按身份定位最新数据）
+function openLinkEditor(mode, index, key) {
+    const nameInput = document.getElementById('link-name');
+    const urlInput = document.getElementById('link-url');
+    clearFieldErrors(modal);
 
-// 打开链接编辑弹窗：mode = 'add' 新增 / 'edit' 编辑（填充现有值）
-function openLinkEditor(mode, index) {
     if (mode === 'edit') {
         storage.get('quickLinks', function (data) {
-            const links = data.quickLinks || defaultLinks;
-            const current = links[index];
-            if (!current) return;
-
+            const links = sanitizeLinks(data.quickLinks) || defaultLinks.slice();
+            const at = findLinkIndex(links, index, key);
+            if (at === -1) return;
             modal.dataset.mode = 'edit';
-            modal.dataset.editingIndex = index;
+            modal.dataset.editingIndex = at;
+            modal.dataset.editingKey = key;
             document.getElementById('link-modal-title').textContent = '编辑快捷链接';
-            openModal(modal, document.getElementById('link-name'));
-            document.getElementById('link-name').value = current.name || '';
-            document.getElementById('link-url').value = current.url || '';
-            const iconMode = current.iconMode || (current.icon ? 'favicon' : 'letter');
-            if (iconMode === 'letter') {
-                document.getElementById('icon-letter').checked = true;
-            } else if (iconMode === 'custom') {
-                document.getElementById('icon-custom').checked = true;
-            } else {
-                document.getElementById('icon-favicon').checked = true;
-            }
-            const customContainer = document.getElementById('custom-url-container');
-            const customInput = document.getElementById('icon-custom-url');
-            if (customContainer && customInput) {
-                if (iconMode === 'custom') {
-                    customContainer.classList.add('show');
-                    customInput.value = current.icon || '';
-                } else {
-                    customContainer.classList.remove('show');
-                    customInput.value = '';
-                }
-            }
+            nameInput.value = links[at].name;
+            urlInput.value = links[at].url;
+            openModal(modal, nameInput);
         });
         return;
     }
 
-    // 新增模式
     modal.dataset.mode = 'add';
     delete modal.dataset.editingIndex;
+    delete modal.dataset.editingKey;
     document.getElementById('link-modal-title').textContent = '添加快捷链接';
-    openModal(modal, document.getElementById('link-name'));
-    document.getElementById('link-name').value = '';
-    document.getElementById('link-url').value = '';
-    // 默认选择 favicon
-    const radioFavicon = document.getElementById('icon-favicon');
-    if (radioFavicon) radioFavicon.checked = true;
-    const customContainer = document.getElementById('custom-url-container');
-    if (customContainer) {
-        customContainer.classList.remove('show');
-    }
-    const customInput = document.getElementById('icon-custom-url');
-    if (customInput) {
-        customInput.value = '';
-    }
+    nameInput.value = '';
+    urlInput.value = '';
+    openModal(modal, nameInput);
 }
 
 // 添加链接模态框
@@ -1605,16 +1739,8 @@ const closeButton = modal.querySelector('.close-btn');
 const cancelButton = document.getElementById('cancel-link');
 
 // 打开模态框（新增模式）
-addLinkButton.onclick = function (e) {
-    e.preventDefault();
+addLinkButton.addEventListener('click', function () {
     openLinkEditor('add');
-};
-
-addLinkButton.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        addLinkButton.click();
-    }
 });
 
 // 打开中的弹窗栈：后打开的在上层（如设置内再打开"编辑链接"）
@@ -1622,9 +1748,10 @@ const openModalStack = [];
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="file"]), ' +
     'textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// 弹窗内可经 Tab 到达的元素（排除 tabindex=-1，如单选组与导航中未选中的项）
 function getFocusableElements(container) {
     return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR))
-        .filter(el => !el.closest('[hidden]') && el.getClientRects().length > 0);
+        .filter(el => el.tabIndex >= 0 && !el.closest('[hidden]') && el.getClientRects().length > 0);
 }
 
 // 打开弹窗：清理关闭动画残留，记住触发元素，焦点移入弹窗
@@ -1709,6 +1836,12 @@ const toast = {
 
         clearTimeout(this.timer);
         textEl.textContent = text;
+        // 读屏播报：写入始终存在的实时区域（先清空，保证相同文字也会再次朗读）
+        const live = document.getElementById('toast-live');
+        if (live) {
+            live.textContent = '';
+            setTimeout(() => { live.textContent = text; }, 50);
+        }
         actionEl.hidden = !opts.onAction;
         actionEl.textContent = opts.actionLabel || '撤销';
         actionEl.onclick = opts.onAction ? () => {
@@ -1736,6 +1869,7 @@ function closeModal() {
     animateModalClose(modal, function () {
         modal.dataset.mode = 'add';
         delete modal.dataset.editingIndex;
+        delete modal.dataset.editingKey;
     });
 }
 
@@ -1856,6 +1990,7 @@ function updateLinksBadge(count) {
 
 // 切换设置分区；导航采用 roving tabindex（只有当前项可 Tab 聚焦）
 function showSettingsSection(sectionName) {
+    shortcutManager.cancelRecording();
     SETTINGS_SECTIONS.forEach(key => {
         const active = key === sectionName;
         settingsNavItems[key].classList.toggle('active', active);
@@ -2009,10 +2144,10 @@ function initSettings() {
 // 备份分区的说明文字：显示当前链接数量，导入前就知道会替换多少
 function updateBackupHints() {
     storage.get('quickLinks', function (data) {
-        const count = (data.quickLinks || defaultLinks).length;
-        exportHint.textContent = `共 ${count} 个链接，保存为 JSON，可在其他设备导入`;
+        const count = (sanitizeLinks(data.quickLinks) || defaultLinks).length;
+        exportHint.textContent = `包含 ${count} 个快捷链接、搜索引擎与偏好设置`;
         document.getElementById('import-hint').textContent =
-            `导入会替换当前的 ${count} 个快捷链接，导入后可以撤销。`;
+            `导入会替换当前的 ${count} 个快捷链接；备份中如含搜索引擎与偏好设置，也会一并替换。导入后可以撤销。`;
     });
 }
 
@@ -2045,24 +2180,29 @@ function loadAboutVersion() {
         });
 }
 
-// 设置区：渲染引擎启用列表（内置固定在前，自定义按创建顺序）
+// 设置区：渲染引擎启用列表（内置固定在前，自定义按创建顺序）。
+// 每行是普通容器：开关自带标签，点击行的其余位置也切换开关；编辑/删除按钮独立。
 function renderEngineSettings() {
     const list = document.getElementById('engine-list');
     if (!list) return;
+    // 重渲染后把焦点放回原来的控件（键盘切换开关时不丢焦点）
+    const focused = document.activeElement;
+    const focusEngine = focused && list.contains(focused) ? focused.dataset.engineId : null;
+    const focusRole = focused && focused.classList.contains('switch') ? 'switch' : null;
     list.innerHTML = '';
 
     const all = [
         ...BUILTIN_ENGINES.map(e => ({ ...e, custom: false })),
         ...engineManager.customEngines.map(e => ({ ...e, custom: true }))
     ];
-
     const onlyOneEnabled = engineManager.enabledIds.length <= 1;
 
     all.forEach(engine => {
         const enabled = engineManager.enabledIds.includes(engine.id);
         const isCurrent = engine.id === engineManager.currentEngineId;
+        const switchId = `engine-switch-${engine.id}`;
 
-        const row = document.createElement('label');
+        const row = document.createElement('div');
         row.className = 'settings-row settings-row-toggle';
 
         const icon = document.createElement('span');
@@ -2071,8 +2211,9 @@ function renderEngineSettings() {
 
         const text = document.createElement('span');
         text.className = 'settings-row-text';
-        const title = document.createElement('span');
+        const title = document.createElement('label');
         title.className = 'settings-row-title';
+        title.htmlFor = switchId;
         title.textContent = engine.label;
         if (isCurrent) {
             const tag = document.createElement('span');
@@ -2091,28 +2232,23 @@ function renderEngineSettings() {
 
         const toggle = document.createElement('input');
         toggle.type = 'checkbox';
+        toggle.id = switchId;
         toggle.className = 'switch';
+        toggle.dataset.engineId = engine.id;
         toggle.setAttribute('role', 'switch');
         toggle.checked = enabled;
-        toggle.setAttribute('aria-label', `启用 ${engine.label}`);
         // 至少保留一个启用引擎：最后一个开启的引擎不可关闭
         if (enabled && onlyOneEnabled) {
             toggle.disabled = true;
+            row.classList.add('is-disabled');
             row.title = '至少需要开启一个搜索引擎';
         }
-        toggle.addEventListener('change', () => {
-            if (toggle.checked) {
-                engineManager.enabledIds.push(engine.id);
-            } else {
-                engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engine.id);
-                if (engineManager.currentEngineId === engine.id) {
-                    engineManager.currentEngineId = engineManager.getEngines()[0].id;
-                }
-            }
-            engineManager.save(() => {
-                updateEngineIcon();
-                renderEngineSettings();
-            });
+        toggle.addEventListener('change', () => setEngineEnabled(engine.id, toggle.checked));
+
+        // 点击行的空白处同样切换（按钮、开关、标签自身的点击除外）
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('button, input, label') || toggle.disabled) return;
+            toggle.click();
         });
 
         row.appendChild(icon);
@@ -2125,24 +2261,17 @@ function renderEngineSettings() {
             const editButton = document.createElement('button');
             editButton.type = 'button';
             editButton.className = 'settings-link-action edit';
+            editButton.dataset.engineId = engine.id;
             editButton.setAttribute('aria-label', `编辑 ${engine.label}`);
             editButton.innerHTML = EDIT_ICON_SVG;
-            editButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openEngineEditor('edit', engine.id);
-            });
+            editButton.addEventListener('click', () => openEngineEditor('edit', engine.id));
 
             const deleteButton = document.createElement('button');
             deleteButton.type = 'button';
             deleteButton.className = 'settings-link-action delete';
             deleteButton.setAttribute('aria-label', `删除 ${engine.label}`);
             deleteButton.innerHTML = DELETE_ICON_SVG;
-            deleteButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                deleteCustomEngine(engine.id);
-            });
+            deleteButton.addEventListener('click', () => deleteCustomEngine(engine.id));
 
             actions.appendChild(editButton);
             actions.appendChild(deleteButton);
@@ -2152,36 +2281,63 @@ function renderEngineSettings() {
         row.appendChild(toggle);
         list.appendChild(row);
     });
+
+    if (focusEngine) {
+        const target = focusRole === 'switch'
+            ? document.getElementById(`engine-switch-${focusEngine}`)
+            : list.querySelector(`.edit[data-engine-id="${CSS.escape(focusEngine)}"]`);
+        if (target) target.focus();
+    }
+}
+
+// 开关某个引擎；关闭当前引擎时切到第一个仍启用的引擎（一并保存）
+function setEngineEnabled(engineId, enabled) {
+    if (enabled) {
+        if (!engineManager.enabledIds.includes(engineId)) engineManager.enabledIds.push(engineId);
+    } else {
+        if (engineManager.enabledIds.length <= 1) return;
+        engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engineId);
+        if (engineManager.currentEngineId === engineId) {
+            engineManager.currentEngineId = engineManager.getEngines()[0].id;
+        }
+    }
+    engineManager.save(() => {
+        updateEngineIcon();
+        renderEngineSettings();
+    });
 }
 
 // 删除自定义引擎：立即生效，提示中可撤销
 function deleteCustomEngine(engineId) {
-    const snapshot = {
-        customEngines: engineManager.customEngines.slice(),
-        enabledIds: engineManager.enabledIds.slice(),
-        currentEngineId: engineManager.currentEngineId
-    };
-    const removed = engineManager.customEngines.find(c => c.id === engineId);
+    const index = engineManager.customEngines.findIndex(c => c.id === engineId);
+    if (index === -1) return;
+    const removed = engineManager.customEngines[index];
+    const wasEnabled = engineManager.enabledIds.includes(engineId);
+    const wasCurrent = engineManager.currentEngineId === engineId;
+
     engineManager.customEngines = engineManager.customEngines.filter(c => c.id !== engineId);
     engineManager.enabledIds = engineManager.enabledIds.filter(id => id !== engineId);
-    if (!engineManager.getEngines().some(en => en.id === engineManager.currentEngineId)) {
-        engineManager.currentEngineId = engineManager.getEngines()[0].id;
-    }
     // 删除后若没有启用的引擎，回退启用第一个内置引擎
     if (!engineManager.enabledIds.length) {
         engineManager.enabledIds = [BUILTIN_ENGINES[0].id];
-        engineManager.currentEngineId = BUILTIN_ENGINES[0].id;
+    }
+    if (!engineManager.getEngines().some(en => en.id === engineManager.currentEngineId)) {
+        engineManager.currentEngineId = engineManager.getEngines()[0].id;
     }
     const refresh = () => {
         updateEngineIcon();
         renderEngineSettings();
     };
     engineManager.save(refresh);
-    toast.show(`已删除“${removed ? removed.label : '搜索引擎'}”`, {
+    // 焦点移到"添加自定义引擎"，避免随被删除的按钮丢失
+    document.getElementById('settings-add-engine').focus();
+    toast.show(`已删除“${removed.label}”`, {
+        // 撤销只放回这一个引擎，不覆盖之后的其他修改
         onAction: () => {
-            engineManager.customEngines = snapshot.customEngines;
-            engineManager.enabledIds = snapshot.enabledIds;
-            engineManager.currentEngineId = snapshot.currentEngineId;
+            if (engineManager.customEngines.some(c => c.id === engineId)) return;
+            engineManager.customEngines.splice(Math.min(index, engineManager.customEngines.length), 0, removed);
+            if (wasEnabled) engineManager.enabledIds.push(engineId);
+            if (wasCurrent) engineManager.currentEngineId = engineId;
             engineManager.save(refresh);
         }
     });
@@ -2206,6 +2362,7 @@ function openEngineEditor(mode, engineId) {
         nameInput.value = '';
         urlInput.value = '';
     }
+    clearFieldErrors(engineModal);
     document.getElementById('engine-modal-title').textContent = mode === 'edit' ? '编辑搜索引擎' : '添加搜索引擎';
     openModal(engineModal, nameInput);
 }
@@ -2216,19 +2373,35 @@ function closeEngineModal() {
     });
 }
 
-// 保存自定义引擎：名称必填，URL 必须包含 {q} 占位符
-function handleSaveEngine() {
-    const name = document.getElementById('engine-name').value.trim();
-    const url = document.getElementById('engine-url').value.trim();
+// 校验自定义引擎网址：须为 http(s) 地址并包含 {q}；返回规范化网址或错误文案
+function validateEngineUrl(raw) {
+    const value = String(raw || '').trim();
+    if (!value) return { error: '请填写搜索网址' };
+    if (!value.includes('{q}')) return { error: '网址需要包含 {q}，表示搜索词的位置' };
+    const url = normalizeHttpUrl(value, true);
+    if (!url) return { error: '请输入有效的 http(s) 网址，例如 https://example.com/search?q={q}' };
+    return { url };
+}
 
+// 保存自定义引擎：名称必填，网址须有效且包含 {q}
+function handleSaveEngine() {
+    const nameInput = document.getElementById('engine-name');
+    const urlInput = document.getElementById('engine-url');
+    const name = nameInput.value.trim();
+    const checked = validateEngineUrl(urlInput.value);
+
+    clearFieldErrors(engineModal);
     if (!name) {
-        document.getElementById('engine-name').focus();
+        setFieldError('engine-name', '请填写名称');
+        nameInput.focus();
         return;
     }
-    if (!url || !url.includes('{q}')) {
-        document.getElementById('engine-url').focus();
+    if (checked.error) {
+        setFieldError('engine-url', checked.error);
+        urlInput.focus();
         return;
     }
+    const url = checked.url;
 
     if (engineModal.dataset.mode === 'edit') {
         const engine = engineManager.customEngines.find(c => c.id === engineModal.dataset.editingId);
@@ -2270,14 +2443,22 @@ function initEngineSettings() {
 }
 
 function closeSettingsModal() {
+    shortcutManager.cancelRecording();
     animateModalClose(settingsModal);
 }
 
+// 备份格式 v2：快捷链接 + 搜索引擎 + 偏好设置（v1 只有 links，仍可导入）
 function getExportJson(callback) {
     storage.get('quickLinks', function (data) {
         const json = JSON.stringify({
-            version: 1,
-            links: data.quickLinks || defaultLinks
+            version: 2,
+            links: sanitizeLinks(data.quickLinks) || defaultLinks.slice(),
+            searchEngines: {
+                custom: engineManager.customEngines,
+                enabled: engineManager.enabledIds,
+                current: engineManager.currentEngineId
+            },
+            preferences: prefs.data
         }, null, 2);
         callback(json);
     });
@@ -2293,44 +2474,119 @@ function exportToClipboard() {
     });
 }
 
+const BACKUP_FILE_NAME = 'minimal-new-tab-backup.json';
+
 function exportToFile() {
     getExportJson(function (json) {
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'quick-links-backup.json';
+        a.download = BACKUP_FILE_NAME;
         a.click();
-        URL.revokeObjectURL(url);
-        toast.show('已下载 quick-links-backup.json');
+        // 稍后再释放，确保下载已开始
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast.show(`已下载 ${BACKUP_FILE_NAME}`);
     });
 }
 
-// 校验并导入；成功返回 true。导入替换全部链接，提示中可撤销
+// 校验备份内容；返回 { links, engines?, preferences? } 或 { error }
+function parseBackup(data) {
+    if (!data || typeof data !== 'object' || !Array.isArray(data.links)) {
+        return { error: '无法导入：缺少 links 数组。请使用本扩展导出的备份文件。' };
+    }
+    const links = [];
+    for (const link of data.links) {
+        if (!link || typeof link.name !== 'string' || !link.name.trim() || typeof link.url !== 'string') {
+            return { error: '无法导入：有链接缺少名称或网址。' };
+        }
+        const url = normalizeHttpUrl(link.url);
+        if (!url) {
+            return { error: `无法导入：“${link.name.trim()}”的网址无效，只支持 http 和 https。` };
+        }
+        links.push({ name: link.name.trim(), url });
+    }
+
+    const result = { links };
+    const engines = data.searchEngines;
+    if (engines && typeof engines === 'object') {
+        const custom = [];
+        for (const engine of Array.isArray(engines.custom) ? engines.custom : []) {
+            const checked = engine && typeof engine.label === 'string' && engine.label.trim()
+                ? validateEngineUrl(engine.url) : { error: true };
+            if (checked.error || typeof engine.id !== 'string' || !engine.id) {
+                return { error: '无法导入：备份中的自定义搜索引擎格式不正确。' };
+            }
+            custom.push({ id: engine.id, label: engine.label.trim(), url: checked.url });
+        }
+        const validIds = new Set([...BUILTIN_ENGINES.map(e => e.id), ...custom.map(e => e.id)]);
+        const enabled = (Array.isArray(engines.enabled) ? engines.enabled : []).filter(id => validIds.has(id));
+        result.engines = {
+            custom,
+            enabled: enabled.length ? enabled : [BUILTIN_ENGINES[0].id],
+            current: validIds.has(engines.current) ? engines.current : null
+        };
+    }
+    if (data.preferences && typeof data.preferences === 'object') {
+        result.preferences = prefs.sanitize(data.preferences);
+    }
+    return result;
+}
+
+// 应用搜索引擎配置（导入或撤销导入时使用）
+function applyEngineConfig(config) {
+    engineManager.customEngines = config.custom.slice();
+    engineManager.enabledIds = config.enabled.slice();
+    engineManager.currentEngineId = config.current && config.enabled.includes(config.current)
+        ? config.current
+        : config.enabled[0];
+    engineManager.save(() => {
+        updateEngineIcon();
+        renderEngineSettings();
+    });
+}
+
+// 应用偏好设置（导入或撤销导入时使用）
+function applyPreferenceConfig(next) {
+    prefs.data = prefs.sanitize(next);
+    prefs.save();
+    applyPreferences();
+}
+
+// 校验并导入；成功返回 true。导入替换对应数据，提示中可撤销
 function handleImportData(data) {
-    if (!data || !data.links || !Array.isArray(data.links)) {
-        showImportMessage('无法导入：缺少 links 数组。请使用本扩展导出的备份文件。');
+    const backup = parseBackup(data);
+    if (backup.error) {
+        showImportMessage(backup.error);
         return false;
     }
-
-    // 验证链接格式
-    for (const link of data.links) {
-        if (!link || !link.name || !link.url) {
-            showImportMessage('无法导入：有链接缺少 name 或 url。');
-            return false;
-        }
-    }
-
     importMessage.hidden = true;
-    const links = data.links.map(normalizeLink);
-    storage.get('quickLinks', function (current) {
-        const previous = (current.quickLinks || defaultLinks).slice();
-        saveLinks(links);
+
+    const previousEngines = {
+        custom: engineManager.customEngines.slice(),
+        enabled: engineManager.enabledIds.slice(),
+        current: engineManager.currentEngineId
+    };
+    const previousPreferences = { ...prefs.data, shortcuts: { ...prefs.data.shortcuts } };
+
+    let previousLinks = null;
+    mutateLinks(function (links) {
+        previousLinks = links.slice();
+        links.splice(0, links.length, ...backup.links);
+    }, function () {
+        if (backup.engines) applyEngineConfig(backup.engines);
+        if (backup.preferences) applyPreferenceConfig(backup.preferences);
         updateBackupHints();
-        toast.show(`已导入 ${links.length} 个快捷链接`, {
+        const parts = [`${backup.links.length} 个快捷链接`];
+        if (backup.engines) parts.push('搜索引擎');
+        if (backup.preferences) parts.push('偏好设置');
+        toast.show(`已导入${parts.join('、')}`, {
             onAction: () => {
-                saveLinks(previous);
-                updateBackupHints();
+                mutateLinks(function (links) {
+                    links.splice(0, links.length, ...previousLinks);
+                }, updateBackupHints);
+                if (backup.engines) applyEngineConfig(previousEngines);
+                if (backup.preferences) applyPreferenceConfig(previousPreferences);
             }
         });
     });
@@ -2343,17 +2599,38 @@ function showImportMessage(text) {
     importMessage.hidden = false;
 }
 
+// 同步存储被其他标签页（或其他设备）修改时，刷新本页显示
+function handleExternalChange(changes) {
+    if ('preferences' in changes && changes.preferences) {
+        prefs.receive(changes.preferences);
+    }
+    if ('quickLinks' in changes) {
+        const links = sanitizeLinks(changes.quickLinks) || defaultLinks.slice();
+        if (JSON.stringify(links) !== JSON.stringify(currentLinks)) {
+            renderLinks(links);
+        }
+    }
+    if ('customEngines' in changes || 'enabledEngines' in changes || 'searchEngine' in changes) {
+        const before = engineManager.snapshot();
+        engineManager.load(function () {
+            if (engineManager.snapshot() === before) return;
+            updateEngineIcon();
+            if (!settingsSections.engines.hidden) renderEngineSettings();
+        });
+    }
+}
+
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function () {
-    // 初始化主题管理器
+    // 主题、配色方案、快捷键先按本地缓存初始化（首帧正确），
+    // 再以同步存储中的偏好为准（首次运行时迁移旧版本地偏好）
     themeManager.init();
-
-    // 初始化配色方案管理器
     schemeManager.init();
-
-    // 初始化快捷键与打开方式
-    loadOpenBehavior();
     shortcutManager.init();
+    prefs.load(applyPreferences);
+
+    // 其他标签页或设备的修改：偏好、快捷链接、搜索引擎
+    storage.onChange(handleExternalChange);
 
     // 加载搜索引擎配置（自定义引擎 + 启用列表 + 当前引擎）
     engineManager.load(function () {

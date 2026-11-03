@@ -3,6 +3,7 @@
     "name": "极简新标签页",
     "version": "2.1",
     "description": "一个极简的新标签页",
+    "minimum_chrome_version": "88",
     "chrome_url_overrides": {
         "newtab": "newtab.html"
     },

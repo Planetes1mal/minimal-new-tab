@@ -5,11 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新标签页</title>
+    <!-- 首屏前应用主题与配色方案（同步读取本地缓存），避免打开新标签页时闪烁 -->
+    <script src="boot.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <div class="container">
+        <h1 class="sr-only">新标签页</h1>
         <!-- 时间与日期：位于搜索框上方，时钟是页面最大的文字元素 -->
         <header class="time-block">
             <div id="time" class="time"></div>
@@ -37,7 +40,7 @@
         <div class="launcher">
             <nav class="quick-links" id="quick-links" aria-label="快捷链接">
                 <!-- 快速链接将通过JS动态添加 -->
-                <a id="add-link-button" class="quick-link add-link" role="button" tabindex="0"
+                <button type="button" id="add-link-button" class="quick-link add-link"
                     aria-label="添加快捷链接" title="添加快捷链接">
                     <span class="quick-link-icon add-link-button" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -46,7 +49,7 @@
                         </svg>
                     </span>
                     <span class="quick-link-name">添加</span>
-                </a>
+                </button>
             </nav>
         </div>
     </div>
@@ -195,9 +198,9 @@
                             <label class="settings-row settings-row-toggle" for="open-in-new-tab">
                                 <span class="settings-row-text">
                                     <span class="settings-row-title">在新标签页中打开</span>
-                                    <span class="settings-row-desc">打开链接或搜索结果时，保留当前页面</span>
+                                    <span class="settings-row-desc">开启后，快捷链接和搜索结果在新标签页中打开</span>
                                 </span>
-                                <input type="checkbox" id="open-in-new-tab" class="switch" role="switch" checked>
+                                <input type="checkbox" id="open-in-new-tab" class="switch" role="switch">
                             </label>
                         </div>
                     </section>
@@ -320,8 +323,8 @@
                         <div class="settings-group">
                             <div class="settings-row settings-row-wrap">
                                 <div class="settings-row-text">
-                                    <span class="settings-row-title">导出快捷链接</span>
-                                    <span id="export-hint" class="settings-row-desc">保存为 JSON，可在其他设备导入</span>
+                                    <span class="settings-row-title">导出备份</span>
+                                    <span id="export-hint" class="settings-row-desc">包含快捷链接、搜索引擎与偏好设置</span>
                                 </div>
                                 <div class="settings-row-control">
                                     <button id="export-clipboard-btn" class="btn btn-secondary btn-sm">复制</button>
@@ -331,7 +334,7 @@
                         </div>
 
                         <h4 class="settings-group-title">导入</h4>
-                        <p id="import-hint" class="settings-group-desc">导入会替换当前的全部快捷链接，导入后可以撤销。</p>
+                        <p id="import-hint" class="settings-group-desc">导入会替换当前的快捷链接；备份中如含搜索引擎与偏好设置，也会一并替换。导入后可以撤销。</p>
                         <div class="settings-group">
                             <div class="settings-row">
                                 <div class="settings-row-text">
@@ -341,7 +344,8 @@
                                 <div class="settings-row-control">
                                     <label for="import-file" class="btn btn-secondary btn-sm" tabindex="0"
                                         id="import-file-btn">选择文件</label>
-                                    <input type="file" id="import-file" accept=".json,application/json" class="sr-only">
+                                    <input type="file" id="import-file" accept=".json,application/json" class="sr-only"
+                                        tabindex="-1">
                                 </div>
                             </div>
                             <div class="settings-row settings-row-stack">
@@ -387,10 +391,12 @@
     </div>
 
     <!-- 操作反馈提示（可撤销）：位于所有弹窗之上 -->
-    <div id="toast" class="toast" role="status" aria-live="polite" hidden>
+    <div id="toast" class="toast" hidden>
         <span id="toast-text" class="toast-text"></span>
         <button type="button" id="toast-action" class="toast-action" hidden>撤销</button>
     </div>
+    <!-- 读屏播报区域：始终在无障碍树中，文本变化即被朗读 -->
+    <div id="toast-live" class="sr-only" role="status" aria-live="polite"></div>
 
     <div id="add-link-modal" class="modal">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="link-modal-title">
@@ -406,34 +412,14 @@
             <form class="modal-form" novalidate>
                 <div class="form-group">
                     <label for="link-name">名称</label>
-                    <input type="text" id="link-name" placeholder="输入网站名称">
+                    <input type="text" id="link-name" placeholder="输入网站名称" aria-describedby="link-name-error">
+                    <p id="link-name-error" class="field-error" hidden></p>
                 </div>
 
                 <div class="form-group">
                     <label for="link-url">网址</label>
-                    <input type="url" id="link-url" placeholder="https://example.com">
-                </div>
-
-                <div class="form-group">
-                    <span class="form-label" id="icon-mode-label">图标样式</span>
-                    <div class="segmented-control" role="radiogroup" aria-labelledby="icon-mode-label">
-                        <label class="segment-option">
-                            <input type="radio" name="icon-mode" id="icon-letter" value="letter">
-                            <span class="segment-label">极简生成</span>
-                        </label>
-                        <label class="segment-option">
-                            <input type="radio" name="icon-mode" id="icon-favicon" value="favicon" checked>
-                            <span class="segment-label">网站默认</span>
-                        </label>
-                        <label class="segment-option">
-                            <input type="radio" name="icon-mode" id="icon-custom" value="custom">
-                            <span class="segment-label">指定 URL</span>
-                        </label>
-                    </div>
-
-                    <div class="custom-url-input" id="custom-url-container">
-                        <input type="url" id="icon-custom-url" placeholder="https://example.com/favicon.ico">
-                    </div>
+                    <input type="url" id="link-url" placeholder="https://example.com" aria-describedby="link-url-error">
+                    <p id="link-url-error" class="field-error" hidden></p>
                 </div>
 
                 <div class="form-actions">
@@ -458,13 +444,16 @@
             <form class="modal-form" novalidate>
                 <div class="form-group">
                     <label for="engine-name">名称</label>
-                    <input type="text" id="engine-name" placeholder="例如：DuckDuckGo">
+                    <input type="text" id="engine-name" placeholder="例如：DuckDuckGo" aria-describedby="engine-name-error">
+                    <p id="engine-name-error" class="field-error" hidden></p>
                 </div>
 
                 <div class="form-group">
                     <label for="engine-url">搜索网址</label>
-                    <input type="url" id="engine-url" placeholder="https://example.com/search?q={q}">
-                    <p class="engine-hint">用 <code>{q}</code> 表示搜索词占位，例如 <code>https://duckduckgo.com/?q={q}</code></p>
+                    <input type="url" id="engine-url" placeholder="https://example.com/search?q={q}"
+                        aria-describedby="engine-url-error engine-url-hint">
+                    <p id="engine-url-error" class="field-error" hidden></p>
+                    <p id="engine-url-hint" class="engine-hint">用 <code>{q}</code> 表示搜索词占位，例如 <code>https://duckduckgo.com/?q={q}</code></p>
                 </div>
 
                 <div class="form-actions">
