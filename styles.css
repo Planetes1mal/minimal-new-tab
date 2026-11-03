@@ -363,7 +363,7 @@ button {
    使搜索框本身落在页面的视觉中点。 */
 .container {
     width: 100%;
-    max-width: 648px;
+    max-width: 816px;
     min-height: 100vh;
     margin: 0 auto;
     padding: calc(50vh - 240px) 24px 64px;
@@ -628,66 +628,6 @@ body.loaded .launcher {
     align-items: center;
     justify-content: center;
     font-size: 0.72rem;
-}
-
-/* 设置区引擎列表 */
-.engine-list {
-    display: grid;
-    gap: 4px;
-}
-
-.engine-row {
-    min-height: 40px;
-    padding: 0 10px 0 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--c-text-primary);
-    background: var(--c-bg);
-    border-radius: 10px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.18s ease;
-}
-
-.engine-row:hover {
-    background: var(--c-surface-muted);
-}
-
-.engine-row input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
-    flex: 0 0 15px;
-    accent-color: var(--c-accent);
-    cursor: pointer;
-}
-
-.engine-row .engine-label {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.engine-row .engine-url-preview {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--c-text-secondary);
-    font-size: 0.74rem;
-    font-weight: 400;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.engine-row .settings-link-action {
-    flex: 0 0 auto;
-}
-
-.settings-add-engine {
-    margin-top: 10px;
 }
 
 .engine-hint {
@@ -1073,7 +1013,8 @@ body.loaded .launcher {
     margin-bottom: 20px;
 }
 
-.form-group > label {
+.form-group > label,
+.form-label {
     display: block;
     margin-bottom: 8px;
     color: var(--c-text-primary);
@@ -1161,6 +1102,17 @@ textarea#import-json:focus {
     transition: color 0.18s ease, background-color 0.18s ease;
 }
 
+/* 行内紧凑版：放在设置行右侧，宽度随内容 */
+.segmented-compact {
+    flex: 0 0 auto;
+}
+
+.segmented-compact .segment-label {
+    min-height: 32px;
+    padding: 6px 14px;
+    white-space: nowrap;
+}
+
 .segment-option:hover .segment-label {
     color: var(--c-text-primary);
 }
@@ -1172,6 +1124,10 @@ textarea#import-json:focus {
 }
 
 /* 指定图标 URL 的输入框：展开时直接出现在分段控件下方，不再套一层外框 */
+.form-label {
+    display: block;
+}
+
 .custom-url-input {
     max-height: 0;
     margin-top: 0;
@@ -1193,30 +1149,16 @@ textarea#import-json:focus {
     transform: translateY(0);
 }
 
-.form-actions,
-.modal-row {
+/* 弹窗底部按钮：主操作在右（与平台对话框惯例一致），宽度随内容 */
+.form-actions {
+    margin-top: 26px;
     display: flex;
+    justify-content: flex-end;
     gap: 10px;
 }
 
-.form-actions {
-    margin-top: 26px;
-}
-
-.form-actions .btn,
-.modal-row .btn {
-    flex: 1;
-}
-
-.settings-panel {
-    margin-bottom: 20px;
-}
-
-.panel-hint {
-    margin: 0 0 12px;
-    color: var(--c-text-secondary);
-    font-size: 0.82rem;
-    line-height: 1.5;
+.form-actions .btn {
+    min-width: 88px;
 }
 
 .btn {
@@ -1253,29 +1195,23 @@ textarea#import-json:focus {
     background: var(--c-border);
 }
 
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.btn-sm {
+    min-height: 32px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+}
+
 textarea#import-json {
     min-height: 104px;
     resize: vertical;
     font-family: var(--font-mono);
     line-height: 1.5;
-}
-
-.import-divider {
-    margin: 12px 0;
-    color: var(--c-text-secondary);
-    font-size: 0.8125rem;
-    text-align: center;
-}
-
-.import-file-btn {
-    width: 100%;
-    display: block;
-    color: var(--c-text-primary);
-    background: var(--c-surface-muted);
-}
-
-.import-file-btn:hover {
-    background: var(--c-border);
 }
 
 .sr-only {
@@ -1290,60 +1226,37 @@ textarea#import-json {
     border: 0;
 }
 
-.import-message {
-    margin-top: 14px;
-    padding: 10px 12px;
-    color: var(--c-text-secondary);
-    background: var(--c-surface-muted);
-    border-radius: 10px;
-    font-size: 0.8125rem;
-    line-height: 1.4;
-}
-
-.import-message.success {
-    color: var(--c-success-strong);
-    background: var(--c-success-soft);
-}
-
-.import-message.error {
-    color: var(--c-danger-strong);
-    background: var(--c-danger-soft);
-}
-
-/* 设置弹窗：左侧导航 + 右侧内容 */
+/* ===== 设置弹窗 =====
+   结构参照平台设置页惯例（macOS 系统设置、Windows 设置卡片、Material 列表）：
+   左侧导航带窗口标题；右侧顶部为当前分区标题与关闭按钮；内容是分组列表，
+   每行左侧为名称与说明，右侧为控件。弹窗固定高度，切换分区时不跳动。 */
 .settings-shell {
-    max-width: 760px;
+    max-width: 820px;
+    height: min(600px, calc(100vh - 48px));
+    margin: max(24px, calc(50vh - 300px)) auto 24px;
+    display: flex;
 }
 
-.settings-body {
+.settings-sidebar {
+    flex: 0 0 200px;
+    padding: 20px 12px 12px;
     display: flex;
-    min-height: 380px;
+    flex-direction: column;
+    background: var(--c-bg);
+}
+
+.settings-title {
+    margin: 0 0 16px;
+    padding: 0 12px;
+    color: var(--c-text-primary);
+    font-size: 1.125rem;
+    font-weight: 650;
+    line-height: 1.3;
 }
 
 .settings-nav {
     position: relative;
-    flex: 0 0 176px;
-    padding: 12px 12px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.settings-nav-group {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.settings-nav-group-title {
-    padding: 0 12px 4px;
-    color: var(--c-text-secondary);
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.settings-nav-items {
-    position: relative;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1351,11 +1264,12 @@ textarea#import-json {
 
 .settings-nav-item {
     position: relative;
+    z-index: 1;
     min-height: 36px;
     padding: 0 12px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: var(--c-text-secondary);
     background: transparent;
     border-radius: 8px;
@@ -1366,10 +1280,15 @@ textarea#import-json {
     transition: color 0.15s ease, background-color 0.15s ease;
 }
 
+/* "关于"固定在导航底部，与功能分区分开 */
+.settings-nav-item-end {
+    margin-top: auto;
+}
+
 .settings-nav-item svg {
-    width: 14px;
-    height: 14px;
-    flex: 0 0 14px;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
 }
 
 .settings-nav-item:hover {
@@ -1382,7 +1301,7 @@ textarea#import-json {
     font-weight: 600;
 }
 
-/* 链接数量：普通的次要数字，不做胶囊 */
+/* 链接数量：普通的次要数字 */
 .settings-nav-badge {
     margin-left: auto;
     color: var(--c-text-secondary);
@@ -1398,8 +1317,8 @@ textarea#import-json {
 /* 浮动高亮指示条：仅跟随悬停/聚焦的导航项，移开后隐藏 */
 .settings-nav-indicator {
     position: absolute;
-    left: 10px;
-    right: 10px;
+    left: 0;
+    right: 0;
     top: 0;
     height: 36px;
     background: var(--c-surface-muted);
@@ -1412,49 +1331,288 @@ textarea#import-json {
         opacity 150ms ease;
 }
 
-.settings-nav-items .settings-nav-item {
-    z-index: 1;
-}
-
-.settings-content {
+.settings-main {
     flex: 1;
     min-width: 0;
-    padding: 12px 24px 24px 12px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-main-header {
+    flex: 0 0 auto;
+    min-height: 64px;
+    padding: 12px 16px 8px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .settings-section-title {
     color: var(--c-text-primary);
-    font-size: 1.0625rem;
+    font-size: 1.125rem;
     font-weight: 650;
     line-height: 1.3;
-    letter-spacing: 0;
+}
+
+.settings-content {
+    flex: 1;
+    min-height: 0;
+    padding: 4px 28px 28px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .settings-section-desc {
-    margin: 4px 0 16px;
+    margin: 0 0 16px;
+    color: var(--c-text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+}
+
+/* 说明文字 + 右侧主操作（如"添加链接"） */
+.settings-section-intro {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.settings-section-intro .settings-section-desc {
+    margin: 0;
+}
+
+.settings-section-intro .btn {
+    flex: 0 0 auto;
+}
+
+/* 分组标题：位于分组列表上方的小号次要文字 */
+.settings-group-title {
+    margin: 28px 0 8px;
+    color: var(--c-text-secondary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.settings-group-title-first {
+    margin-top: 0;
+}
+
+.settings-group-desc {
+    margin: -4px 0 10px;
     color: var(--c-text-secondary);
     font-size: 0.8125rem;
     line-height: 1.55;
 }
 
-.settings-sub-title {
-    margin: 24px 0 8px;
-    color: var(--c-text-primary);
-    font-size: 0.875rem;
-    font-weight: 600;
-    line-height: 1.4;
-    letter-spacing: 0;
+/* 分组列表：一块底色容器，行与行之间用缩进分隔线（平台惯例） */
+.settings-group {
+    position: relative;
+    background: var(--c-bg);
+    border-radius: 12px;
 }
 
-.settings-field-label {
-    display: block;
-    margin-bottom: 8px;
+.settings-row {
+    position: relative;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     color: var(--c-text-primary);
-    font-size: 0.82rem;
-    font-weight: 600;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+}
+
+.settings-group > .settings-row + .settings-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    height: 1px;
+    background: var(--c-border);
+}
+
+/* 圆角容器的首末行在悬停时同样保持圆角 */
+.settings-group > .settings-row:first-child {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.settings-group > .settings-row:last-child {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* 整行可点击的行：开关行、链接行、按钮行 */
+.settings-row-toggle,
+.settings-row-link,
+button.settings-row,
+.settings-link-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.settings-row-toggle:hover,
+.settings-row-link:hover,
+button.settings-row:hover,
+.settings-link-row:hover {
+    background: var(--c-surface-muted);
+}
+
+.settings-row-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.settings-row-title {
+    color: var(--c-text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
     line-height: 1.4;
-    letter-spacing: 0;
+}
+
+.settings-row-desc {
+    overflow: hidden;
+    color: var(--c-text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+}
+
+.settings-row-value {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--c-text-secondary);
+    font-size: 0.875rem;
+}
+
+.settings-row-value svg {
+    width: 14px;
+    height: 14px;
+}
+
+.settings-row-control {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 纵向堆叠的行（标签 + 多行输入 + 操作） */
+.settings-row-stack {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.settings-row-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 当前项标记（如当前使用的搜索引擎）：普通彩色文字 */
+.settings-row-tag {
+    margin-left: 8px;
+    color: var(--c-accent-strong);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 分组之后的次要操作（如"添加自定义引擎""恢复默认"） */
+.settings-after-group {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.settings-footnote {
+    margin-top: 12px;
+    color: var(--c-text-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+}
+
+/* 开关：用于立即生效的开/关设置（Apple HIG：列表行内使用开关） */
+.switch {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 24px;
+    margin: 0;
+    background: var(--c-border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.switch::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.switch:checked {
+    background: var(--c-accent);
+}
+
+.switch:checked::before {
+    transform: translateX(16px);
+}
+
+.switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.settings-row-toggle:has(.switch:disabled) {
+    cursor: default;
+}
+
+/* 搜索引擎行 */
+.engine-row-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-text-primary);
+}
+
+.engine-row-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.engine-row-icon .engine-letter {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    background: var(--c-surface-muted);
 }
 
 /* 配色方案：明暗双色板预览卡 */
@@ -1570,38 +1728,30 @@ textarea#import-json {
     stroke-width: 2.4;
 }
 
-/* 快捷链接列表 */
-.settings-add-link {
-    margin-bottom: 12px;
-}
-
+/* 快捷链接列表：拖动手柄 + 站点圆点 + 名称/域名 + 编辑/删除 */
 .settings-link-list {
     position: relative; /* 拖拽插入线的定位祖先 */
-    display: grid;
-    gap: 4px;
 }
 
 .settings-link-row {
-    position: relative;
-    min-width: 0;
-    min-height: 44px;
-    padding: 0 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--c-text-primary);
-    background: var(--c-bg);
-    border-radius: 10px;
-    cursor: grab;
-    transition: background-color 0.18s ease;
-}
-
-.settings-link-row:hover {
-    background: var(--c-surface-muted);
+    gap: 12px;
 }
 
 .settings-link-row.dragging {
     opacity: 0.38;
+}
+
+.drag-handle {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    color: var(--c-text-secondary);
+    opacity: 0.6;
+    cursor: grab;
+}
+
+.settings-link-row:hover .drag-handle {
+    opacity: 1;
 }
 
 .settings-link-dot {
@@ -1612,52 +1762,28 @@ textarea#import-json {
     border-radius: 50%;
 }
 
-.settings-link-name {
-    flex: 0 1 auto;
-    overflow: hidden;
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.settings-link-url {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--c-text-secondary);
-    font-size: 0.76rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .settings-link-actions {
     flex: 0 0 auto;
     display: flex;
-    gap: 4px;
+    gap: 2px;
 }
 
 .settings-link-action {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--c-text-secondary);
     background: transparent;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: color 0.18s ease, background-color 0.18s ease;
+    transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .settings-link-action:hover {
     color: var(--c-text-primary);
     background: var(--c-surface);
-}
-
-.settings-link-action.edit:hover {
-    color: var(--c-accent-strong);
-    background: var(--c-accent-soft);
 }
 
 .settings-link-action.delete:hover {
@@ -1666,56 +1792,25 @@ textarea#import-json {
 }
 
 .settings-link-action svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
 }
 
 .settings-link-empty {
-    padding: 28px 12px;
+    padding: 32px 16px;
     color: var(--c-text-secondary);
-    background: var(--c-bg);
-    border-radius: 10px;
     font-size: 0.8125rem;
     text-align: center;
 }
 
-/* 快捷键列表 */
-.shortcut-list {
-    display: grid;
-    gap: 4px;
-}
-
-.shortcut-row {
-    min-height: 40px;
-    padding: 0 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    color: var(--c-text-primary);
-    background: var(--c-bg);
-    border-radius: 10px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.shortcut-row:hover {
-    background: var(--c-surface-muted);
-}
-
-.shortcut-row.recording {
-    background: var(--c-surface);
-    box-shadow: 0 0 0 2px var(--c-accent);
-}
-
+/* 快捷键行：整行是按钮，右侧显示当前组合键 */
 .shortcut-key {
-    min-width: 84px;
+    min-width: 72px;
     padding: 4px 10px;
-    color: var(--c-text-secondary);
+    color: var(--c-text-primary);
     background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-bottom-width: 2px;
     border-radius: 6px;
     font-family: var(--font-ui);
     font-size: 0.8125rem;
@@ -1724,55 +1819,86 @@ textarea#import-json {
     text-align: center;
 }
 
+.shortcut-row.recording {
+    background: var(--c-accent-soft);
+}
+
 .shortcut-row.recording .shortcut-key {
     color: var(--c-accent-strong);
+    border-color: var(--c-accent);
 }
 
-.shortcut-reset {
+.shortcut-row.conflict .shortcut-key {
+    color: var(--c-danger-strong);
+    border-color: var(--c-danger);
+}
+
+/* 导入错误：就近显示在导入区下方 */
+.import-message {
     margin-top: 12px;
-}
-
-/* 关于区 */
-.about-card {
-    padding: 16px;
-    background: var(--c-bg);
-    border-radius: 12px;
-}
-
-.about-name {
-    color: var(--c-text-primary);
-    font-size: 0.92rem;
-    font-weight: 650;
-    line-height: 1.4;
-}
-
-.about-version {
-    color: var(--c-text-secondary);
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.about-license {
-    margin-top: 6px;
-    color: var(--c-text-secondary);
-    font-size: 0.8rem;
+    padding: 10px 14px;
+    color: var(--c-danger-strong);
+    background: var(--c-danger-soft);
+    border-radius: 10px;
+    font-size: 0.8125rem;
     line-height: 1.5;
 }
 
-.about-link {
-    display: inline-block;
-    margin-top: 10px;
-    color: var(--c-accent-strong);
-    font-size: 0.84rem;
-    font-weight: 600;
-    text-decoration: none;
-    border-radius: 4px;
+/* 操作反馈提示：底部居中，可带"撤销"操作，数秒后自动消失 */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    z-index: 3000;
+    max-width: calc(100% - 32px);
+    min-height: 44px;
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--c-bg);
+    background: var(--c-text-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px var(--c-shadow);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    transform: translateX(-50%);
+    animation: toast-in 200ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.about-link:hover,
-.about-link:focus-visible {
-    text-decoration: underline;
-    outline: 0;
+.toast[hidden] {
+    display: none;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
+    }
+}
+
+.toast-text {
+    min-width: 0;
+}
+
+.toast-action {
+    flex: 0 0 auto;
+    margin-right: -8px;
+    padding: 6px 10px;
+    color: inherit;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.toast-action[hidden] {
+    display: none;
+}
+
+.toast-action:hover {
+    background: rgba(127, 127, 127, 0.24);
 }
 
 .btn:focus-visible,
@@ -1784,11 +1910,19 @@ textarea#import-json {
 .settings-nav-item:focus-visible,
 .scheme-card:focus-visible,
 .settings-link-action:focus-visible,
-.shortcut-row:focus-visible,
-.segment-option:focus-within .segment-label,
-.import-file-btn:focus-visible {
+.settings-row-link:focus-visible,
+button.settings-row:focus-visible,
+.switch:focus-visible,
+.toast-action:focus-visible,
+.segment-option:focus-within .segment-label {
     outline: 2px solid var(--c-accent);
     outline-offset: 2px;
+}
+
+/* 整行焦点环画在行内，避免被分组容器裁切 */
+.settings-row-link:focus-visible,
+button.settings-row:focus-visible {
+    outline-offset: -2px;
 }
 
 @media (max-width: 768px) {
@@ -1796,61 +1930,62 @@ textarea#import-json {
         padding: calc(50vh - 212px) 20px 56px;
     }
 
-    /* 窄屏设置弹窗：导航折为顶部横向 chip 行 */
+    /* 窄屏设置弹窗：顶部为分区标题 + 关闭，其下为横向滚动的导航，再下为内容 */
     .settings-shell {
-        max-width: calc(100% - 32px);
-    }
-
-    .settings-body {
+        width: calc(100% - 24px);
+        max-width: none;
+        height: calc(100vh - 24px);
+        margin: 12px auto;
         flex-direction: column;
-        min-height: 0;
     }
 
-    .settings-nav {
-        flex: none;
-        flex-direction: row;
-        padding: 10px 12px;
-        gap: 4px;
-        overflow-x: auto;
+    .settings-sidebar,
+    .settings-main {
+        display: contents;
     }
 
-    .settings-nav-group {
-        flex-direction: row;
-        gap: 4px;
-    }
-
-    .settings-nav-group-title {
+    .settings-title {
         display: none;
     }
 
-    .settings-nav-items {
+    .settings-main-header {
+        order: 0;
+        min-height: 56px;
+        padding: 8px 8px 4px 20px;
+    }
+
+    .settings-nav {
+        order: 1;
+        flex: 0 0 auto;
         flex-direction: row;
+        padding: 4px 16px 12px;
         gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
 
     .settings-nav-item {
-        flex: 1 0 auto;
-        min-height: 32px;
-        padding: 0 12px;
-        justify-content: center;
+        flex: 0 0 auto;
+        min-height: 34px;
         white-space: nowrap;
     }
 
-    /* 窄屏用底色表达选中态（浮动指示条隐藏） */
-    .settings-nav-item.active {
-        background: var(--c-accent-soft);
+    .settings-nav-item-end {
+        margin-top: 0;
     }
 
     .settings-nav-indicator {
         display: none;
     }
 
-    .settings-nav-item::before {
-        display: none;
+    .settings-content {
+        order: 2;
+        padding: 4px 16px 20px;
     }
 
-    .settings-content {
-        padding: 8px 16px 16px;
+    /* 行内控件放不下时换到说明文字下方（Windows 设置卡片的换行规则） */
+    .settings-row {
+        flex-wrap: wrap;
     }
 
     .time {
@@ -1896,6 +2031,15 @@ textarea#import-json {
 }
 
 @media (max-width: 480px) {
+    /* 分段控件等宽控件的行：说明独占一行，控件换到下方 */
+    .settings-row-wrap {
+        row-gap: 10px;
+    }
+
+    .settings-row-wrap .settings-row-text {
+        flex-basis: 100%;
+    }
+
     .container {
         padding: calc(50vh - 186px) 16px 48px;
     }
